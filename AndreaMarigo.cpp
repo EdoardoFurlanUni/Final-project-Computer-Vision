@@ -1,6 +1,25 @@
 
 #include "main.h"
 
+cv::Mat contrast_streatching(cv::Mat I, int threshold) {
+    // mask contains pixel of value <= threshold
+    cv::Mat mask;
+    cv::threshold(I, mask, threshold, 255, cv::THRESH_BINARY_INV);
+
+    // Multiply pixel by L/threshold
+    cv::Mat temp;
+    I.convertTo(temp, CV_32F);
+    temp = temp * 255/threshold;
+    temp.convertTo(temp, CV_8U);
+
+    // Apply the mask
+    cv::Mat stretched;
+    stretched = cv::Mat::ones(I.size(), I.type()) * 255;       // all pixel to 255
+    temp.copyTo(stretched, mask);                              // overwrite pixel < threshold
+
+    return stretched;
+}
+
 cv::Mat display_hist(cv::Mat I, int bins, std::string name) {
     cv::Mat hist;
     if (I.channels() > 1) {
