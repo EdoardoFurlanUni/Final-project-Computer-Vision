@@ -1,7 +1,7 @@
 
 #include "main.h"
 
-cv::Mat contrast_streatching(cv::Mat I, int threshold) {
+cv::Mat contrast_stretching(cv::Mat I, int threshold) {
     // mask contains pixel of value <= threshold
     cv::Mat mask;
     cv::threshold(I, mask, threshold, 255, cv::THRESH_BINARY_INV);
@@ -48,4 +48,30 @@ cv::Mat display_hist(cv::Mat I, int bins, std::string name) {
     cv::imshow(name, histImage);
 
     return hist;
+}
+
+/**
+ * @brief Applies preprocessing to a vector of images
+ * 
+ * @param images Vector of input images
+ * @param T threshold for contrast stretching
+ * @param s size of the Gaussian kernel
+ * @param sigma standard deviation for GaussianBlur
+ * 
+ * @return Vector of preprocessed images
+ */
+std::vector<cv::Mat> preprocess_images(const std::vector<cv::Mat>& images, float T, int s, float sigma) {
+    std::vector<cv::Mat> processed_images;
+    processed_images.reserve(images.size());
+
+    for (const cv::Mat& img : images) {
+
+        cv::Mat new_image = contrast_stretching(img, T);
+
+        cv::GaussianBlur(new_image, new_image, cv::Size(s, s), sigma);
+
+        processed_images.push_back(new_image);
+    }
+
+    return processed_images;
 }
