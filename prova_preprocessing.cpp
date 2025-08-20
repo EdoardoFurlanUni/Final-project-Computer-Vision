@@ -21,7 +21,7 @@ void on_trackbar(int pos, void* userdata) {
 
 int main(int argc, const char* argv[])
 {    
-    const std::string filename = "./test/images/IMG_24.jpg";
+    const std::string filename = "../test/images/IMG_24.jpg";
     image = cv::imread(filename, cv::IMREAD_GRAYSCALE);
 
     image = contrast_stretching(image, 0.97*255);

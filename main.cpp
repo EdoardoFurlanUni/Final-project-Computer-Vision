@@ -3,21 +3,21 @@
 int main(int argc, const char* argv[])
 {
     const std::vector<std::string> coins_classes = {
-        {"1_CENT", "2_CENT", "5_CENT", "10_CENT", "20_CENT", "50_CENT", "1_EURO", "2_EURO"}
+        {"1_CENT", "2_CENT", "10_CENT", "20_CENT", "50_CENT", "1_EURO", "2_EURO"}
     };
 
     const std::vector<std::string> dataset_images_paths= {
-        {"./dataset/images/1_CENT", "./dataset/images/2_CENT", "./dataset/images/5_CENT", "./dataset/images/10_CENT", "./dataset/images/20_CENT", "./dataset/images/50_CENT", "./dataset/images/1_EURO", "./dataset/images/2_EURO"}
+        {"../dataset/images/1_CENT", "../dataset/images/2_CENT", "../dataset/images/10_CENT", "../dataset/images/20_CENT", "../dataset/images/50_CENT", "../dataset/images/1_EURO", "../dataset/images/2_EURO"}
     };
     const std::vector<std::string> dataset_labels_paths= {
-        {"./dataset/labels/1_CENT", "./dataset/labels/2_CENT", "./dataset/labels/5_CENT", "./dataset/labels/10_CENT", "./dataset/labels/20_CENT", "./dataset/labels/50_CENT", "./dataset/labels/1_EURO", "./dataset/labels/2_EURO"}
+        {"../dataset/labels/1_CENT", "../dataset/labels/2_CENT", "../dataset/labels/10_CENT", "../dataset/labels/20_CENT", "../dataset/labels/50_CENT", "../dataset/labels/1_EURO", "../dataset/labels/2_EURO"}
     };
 
-    const std::string test_images_path = "./test/images/";
-    const std::string test_labels_path = "./test/labels/";
+    const std::string test_images_path = "../test/images/";
+    const std::string test_labels_path = "../test/labels/";
 
     const std::vector<std::string> test_videos_path = {
-        {"./test/videos/", "./test/videos/video1_frame/images", "./test/videos/video2_frame/images"}
+        {"../test/videos/", "../test/videos/video1_frame/images", "../test/videos/video2_frame/images"}
     };
 
 
