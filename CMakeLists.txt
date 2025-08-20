@@ -14,5 +14,5 @@ target_link_libraries(opencv_test ${OpenCV_LIBS})
 # Secondo eseguibile
 add_executable(prova_preprocessing prova_preprocessing.cpp fileManagement.cpp preprocessing.cpp)
 target_link_libraries(prova_preprocessing ${OpenCV_LIBS})
-# Includi i path di OpenCV
+
 target_include_directories(prova_preprocessing PRIVATE ${OpenCV_INCLUDE_DIRS})

@@ -7,10 +7,10 @@ int main(int argc, const char* argv[])
     };
 
     const std::vector<std::string> dataset_images_paths= {
-        {"../dataset/images/1_CENT", "../dataset/images/2_CENT", "../dataset/images/10_CENT", "../dataset/images/20_CENT", "../dataset/images/50_CENT", "../dataset/images/1_EURO", "../dataset/images/2_EURO"}
+        {"../template/images/1_CENT", "../template/images/2_CENT", "../template/images/10_CENT", "../template/images/20_CENT", "../template/images/50_CENT", "../template/images/1_EURO", "../template/images/2_EURO"}
     };
     const std::vector<std::string> dataset_labels_paths= {
-        {"../dataset/labels/1_CENT", "../dataset/labels/2_CENT", "../dataset/labels/10_CENT", "../dataset/labels/20_CENT", "../dataset/labels/50_CENT", "../dataset/labels/1_EURO", "../dataset/labels/2_EURO"}
+        {"../template/labels/1_CENT", "../template/labels/2_CENT", "../template/labels/10_CENT", "../template/labels/20_CENT", "../template/labels/50_CENT", "../template/labels/1_EURO", "../template/labels/2_EURO"}
     };
 
     const std::string test_images_path = "../test/images/";
@@ -38,7 +38,7 @@ int main(int argc, const char* argv[])
 
     // ----- PREPROCESSING (dataset and test) -----
     float contrast_stretching_T = 0.4*255; 
-    int gaussian_kernel_size = 5;
+    int gaussian_kernel_size = 7;
     float gaussian_kernel_sigma = 1.5;
     
     std::vector<std::vector<cv::Mat>> preprocessed_dataset_images;
@@ -48,13 +48,83 @@ int main(int argc, const char* argv[])
         std::vector<cv::Mat> prep_imgs_in_folder = preprocess_images(imgs_in_folder, contrast_stretching_T, gaussian_kernel_size, gaussian_kernel_sigma);
         preprocessed_dataset_images.push_back(prep_imgs_in_folder);
     }
+    for (const auto& imgs_in_folder : preprocessed_dataset_images) {
+        for (const cv::Mat& img : imgs_in_folder) {
+            cv::imshow("Preprocessed Image", img);
+            cv::waitKey(0);
+        }
+    }
 
     std::vector<cv::Mat> preprocessed_test_images = preprocess_images(test_images, contrast_stretching_T, gaussian_kernel_size, gaussian_kernel_sigma);
 
     // ----- HOUGH CIRCLES (dataset and test) -----
+    /* for (const auto& imgs_in_folder : preprocessed_dataset_images) {
+        for (const cv::Mat& img_1ch : imgs_in_folder) {
+            cv::Mat img;
+            cv::cvtColor(img_1ch, img, cv::COLOR_GRAY2BGR);
+            std::vector<cv::Vec3f> circles;
+            cv::HoughCircles(img, circles, cv::HOUGH_GRADIENT, 3, img.cols/8, 200, 100, 0, 0);
+            std::cout << "Found " << circles.size() << " circles in the image." << std::endl;
+            for( size_t i = 0; i < circles.size(); i++ )
+            {
+                cv::Vec3i c = circles[i];
+                cv::Point center = cv::Point(c[0], c[1]);
+                // circle center
+                cv::circle(img, center, 1, cv::Scalar(0,100,100), 3, cv::LINE_AA);
+                // circle outline
+                int radius = c[2];
+                cv::circle(img, center, radius, cv::Scalar(255,0,255), 3, cv::LINE_AA);
+            }
+            cv::namedWindow("Hough Circles");
+            cv::imshow("Hough Circles", img);
+            cv::waitKey(0);
+        }
+    }
 
-    // ----- SIFT OR TEMPLATE MATCHING (test) -----
+    for (const cv::Mat& img : preprocessed_test_images) {
+        std::vector<cv::Vec3f> circles;
+        cv::HoughCircles(img, circles, cv::HOUGH_GRADIENT, 1, img.cols/8, 200, 100, 0, 0);
+        std::cout << "Found " << circles.size() << " circles in the image." << std::endl;
+        for( size_t i = 0; i < circles.size(); i++ )
+        {
+            cv::Vec3i c = circles[i];
+            cv::Point center = cv::Point(c[0], c[1]);
+            // circle center
+            cv::circle(img, center, 1, cv::Scalar(0,0,100), 3, cv::LINE_AA);
+            // circle outline
+            int radius = c[2];
+            cv::circle(img, center, radius, cv::Scalar(255,0,255), 3, cv::LINE_AA);
+        }
+        cv::namedWindow("Hough Circles test");
+        cv::imshow("Hough Circles test", img);
+        cv::waitKey(0);*/
+    //}
+    // ----- TEMPLATE MATCHING (test) -----
 
+    for (const cv::Mat& img : preprocessed_test_images) {
+        cv::Mat img_3ch;
+        cv::cvtColor(img, img_3ch, cv::COLOR_GRAY2BGR);
+        for (size_t i = 0; i < coins_classes.size(); i++) {
+            for (const cv::Mat& template_img : preprocessed_dataset_images[i]) {
+                cv::Mat result;
+                //Methods available for template matching: cv::TM_CCOEFF, cv::TM_CCOEFF_NORMED, cv::TM_CCORR, cv::TM_CCORR_NORMED, cv::TM_SQDIFF, cv::TM_SQDIFF_NORMED
+                cv::matchTemplate(img, template_img, result, cv::TM_CCOEFF_NORMED);
+                //cv::normalize( result, result, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
+                double minVal, maxVal;
+                cv::Point minLoc, maxLoc;
+                cv::minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc);
+                if (maxVal > 0.8) { // threshold for a good match
+                    cv::rectangle(img_3ch, maxLoc, cv::Point(maxLoc.x + template_img.cols, maxLoc.y + template_img.rows), cv::Scalar(0, 255, 0), 2);
+                    cv::putText(img_3ch, coins_classes[i], cv::Point(maxLoc.x, maxLoc.y - 10), cv::FONT_HERSHEY_SIMPLEX, 3, cv::Scalar(0, 255, 0), 2);
+                    std::cout << "Found " << coins_classes[i] << " at location: " << maxLoc << " with confidence: " << maxVal << std::endl;
+                }
+            }
+        }
+        cv::imshow("Template Matching", img_3ch);
+        cv::waitKey(0);
+    }
+
+    // ----- HOUGH LINES (test) -----
     // ----- COMPUTE OUTPUT (test) -----
 
     // ----- PERFORMANCE METRICS (test) -----
