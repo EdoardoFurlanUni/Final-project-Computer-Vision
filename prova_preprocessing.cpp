@@ -24,11 +24,11 @@ int main(int argc, const char* argv[])
     const std::string filename = "./test/images/IMG_24.jpg";
     image = cv::imread(filename, cv::IMREAD_GRAYSCALE);
 
+    image = contrast_stretching(image, 0.97*255);
+    cv::GaussianBlur(image, image, cv::Size(5,5), 1.5);
+    image = correct_illumination(image);
     cv::namedWindow("test image", cv::WINDOW_KEEPRATIO);
     cv::namedWindow("canny image", cv::WINDOW_KEEPRATIO);
-
-    image = contrast_stretching(image, 0.4*255);
-    cv::GaussianBlur(image, image, cv::Size(5,5), 1.5);
 
     // se vuoi plottare il kernel gaussiano
     // cv::Mat gaussNorm;

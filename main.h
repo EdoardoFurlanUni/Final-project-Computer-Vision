@@ -31,6 +31,15 @@ std::vector<cv::Mat> load_images_from_folder(const std::string& folders);
 
 // ----- PREPROCESSING -----
 /**
+ * @brief Corrects the illumination of a gray scale image using a Gaussian filter
+ * 
+ * @param I gray scale image
+ * 
+ * @return The resulting image after illumination correction
+ */
+cv::Mat correct_illumination(cv::Mat I);
+
+/**
  * @brief Apply the transformation T(r) = {if r <= T then L/T *r else L}
  * 
  * @param I gray scale image

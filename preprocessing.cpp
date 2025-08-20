@@ -1,6 +1,26 @@
 
 #include "main.h"
 
+//MODIFIED
+
+cv::Mat correct_illumination(cv::Mat I){
+    cv::Mat illumination, corrected;
+    // apply a Gaussian filter with a large kernel to estimate the illumination
+    cv::GaussianBlur(I, illumination, cv::Size(101, 101), 0);
+    // convert the images to float for division
+    I.convertTo(I, CV_32F);
+    illumination.convertTo(illumination, CV_32F);
+    cv::Scalar meanVal = cv::mean(illumination);
+    // divide the original image by the illumination
+    // and multiply by the mean value of the illumination (normalization)
+    cv::divide(I, illumination, corrected);
+    corrected *= cv::mean(illumination)[0];
+    corrected.convertTo(corrected, CV_8U);
+
+    return corrected;
+}
+
+
 cv::Mat contrast_stretching(cv::Mat I, int threshold) {
     // mask contains pixel of value <= threshold
     cv::Mat mask;
