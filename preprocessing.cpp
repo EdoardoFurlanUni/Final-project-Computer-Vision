@@ -18,6 +18,7 @@ cv::Mat correct_illumination(cv::Mat I){
     // and multiply by the mean value of the illumination (normalization)
     cv::divide(I, illumination, corrected);
     corrected *= cv::mean(illumination)[0];
+    // std::cout << "Mean value before conversion: " << cv::mean(illumination)[0] << std::endl;
     corrected.convertTo(corrected, CV_8U);
 
     return corrected;

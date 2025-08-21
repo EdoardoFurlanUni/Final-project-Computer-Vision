@@ -107,6 +107,8 @@ int main(int argc, const char* argv[])
     // ----- TEMPLATE MATCHING (test) -----
 
     for (const cv::Mat& img : preprocessed_test_images) {
+        auto start = std::chrono::high_resolution_clock::now();
+
         // convert to BGR to draw colored bbox
         cv::Mat img_3ch;
         cv::cvtColor(img, img_3ch, cv::COLOR_GRAY2BGR);
@@ -116,10 +118,8 @@ int main(int argc, const char* argv[])
         for (size_t i = 0; i < coins_classes.size(); i++) {
             for (const cv::Mat& template_img : preprocessed_dataset_images[i]) {
                 
-                // search for the best match (at least > 0.8) among all the rotations of the template
-                double bestVal = 0;
-                cv::Point bestLoc = cv::Point(-1, -1);
-                std::vector<cv::Mat> rotations = rotate_template(template_img, 8);
+                // search for the best matches (at least > 0.95) among all the rotations of the template
+                std::vector<cv::Mat> rotations = rotate_template(template_img, 1);
                 for (const cv::Mat& rotated_template : rotations) {
 
                     cv::Mat result;
@@ -127,30 +127,32 @@ int main(int argc, const char* argv[])
                     cv::matchTemplate(img, rotated_template, result, cv::TM_CCORR_NORMED);
                     //cv::normalize( result, result, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
 
-                    double minVal, maxVal;
-                    cv::Point minLoc, maxLoc;
-                    cv::minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc);
-                    if (maxVal > bestVal) {
-                        bestVal = maxVal;
-                        bestLoc = maxLoc;
-                    }
+                    std::vector<std::tuple<cv::Point, float>> good_matches = get_positions_and_values_above_threshold(result, 0.95);
 
-                }
+                    for (const auto& match : good_matches) {
+                        cv::Point loc = std::get<0>(match);
+                        float val = std::get<1>(match);
 
-                if (bestVal > 0.8) { // threshold for a good match
-                        cv::Point center = cv::Point(bestLoc.x + template_img.cols/2, bestLoc.y + template_img.rows/2);
+                        cv::Point center = cv::Point(loc.x + rotated_template.cols/2, loc.y + rotated_template.rows/2);
+                        float radius = rotated_template.rows/2;
 
                         // check if it has been already found
-                        if (!exists_near_point(center, positions_found, template_img.cols/2)) {
+                        if (!exists_near_point(center, positions_found, radius)) {
                             positions_found.push_back(center);
-                            cv::circle(img_3ch, center, template_img.rows/2, cv::Scalar(0, 255, 0), 5);
-                            // cv::rectangle(img_3ch, bestLoc, cv::Point(bestLoc.x + template_img.cols, bestLoc.y + template_img.rows), cv::Scalar(0, 255, 0), 5);
-                            cv::putText(img_3ch, coins_classes[i], cv::Point(bestLoc.x, bestLoc.y - 10), cv::FONT_HERSHEY_SIMPLEX, 3, cv::Scalar(0, 255, 0), 5);
-                            std::cout << "Found " << coins_classes[i] << " at location: " << bestLoc << " with confidence: " << bestVal << std::endl;
+                            cv::circle(img_3ch, center, radius, cv::Scalar(0, 255, 0), 5);
+                            cv::putText(img_3ch, coins_classes[i], cv::Point(loc.x, loc.y - 10), cv::FONT_HERSHEY_SIMPLEX, 3, cv::Scalar(0, 255, 0), 5);
+                            std::cout << "Found " << coins_classes[i] << " at location: " << loc << " with confidence: " << val << std::endl;
                         }
                     }
+                }
             }
         }
+
+        // Measure the time taken for template matching
+        auto end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed = end - start;
+        std::cout << "Elapsed time: " << elapsed.count() << " seconds" << std::endl;
+
         cv::namedWindow("Template Matching", cv::WINDOW_KEEPRATIO);
         cv::imshow("Template Matching", img_3ch);
         cv::waitKey(0);

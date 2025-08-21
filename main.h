@@ -5,6 +5,7 @@
 #include <string>
 #include <tuple>
 #include <filesystem>
+#include <chrono>   // time measurement
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/features2d.hpp>
@@ -74,6 +75,16 @@ std::vector<cv::Mat> preprocess_images(const std::vector<cv::Mat>& images, float
 
 
 // ----- TEMPLATE MATCHING -----
+
+/**
+ * @brief Finds all the matches which have values above a certain threshold
+ *
+ * @param result result matrix (output of matchTemplate)
+ * @param threshold threshold value
+ * 
+ * @return Vector of (position, value) tuples
+ */
+std::vector<std::tuple<cv::Point, float>> get_positions_and_values_above_threshold(const cv::Mat& result, double threshold);
 /**
  * @brief Checks if there is a point near the target within a minimum distance
  * 

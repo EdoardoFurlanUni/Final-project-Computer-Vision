@@ -1,5 +1,20 @@
 #include "main.h"
 
+std::vector<std::tuple<cv::Point, float>> get_positions_and_values_above_threshold(const cv::Mat& result, double threshold) {
+    std::vector<std::tuple<cv::Point, float>> positions_and_values;
+
+    for (int y = 0; y < result.rows; ++y) {
+        for (int x = 0; x < result.cols; ++x) {
+            
+            float value = result.at<float>(y, x);
+            if (value >= threshold) {
+                positions_and_values.emplace_back(cv::Point(x, y), value);
+            }
+        }
+    }
+    return positions_and_values;
+}
+
 bool exists_near_point(const cv::Point& target, const std::vector<cv::Point>& points, const double min_distance) {
 
     for (const cv::Point& p : points) {
