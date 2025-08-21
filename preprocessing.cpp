@@ -78,8 +78,11 @@ std::vector<cv::Mat> preprocess_images(const std::vector<cv::Mat>& images, float
     processed_images.reserve(images.size());
 
     for (const cv::Mat& img : images) {
+        cv::Mat new_image = img;
 
-        cv::Mat new_image = contrast_stretching(img, T);
+        // new_image = correct_illumination(new_image);
+
+        new_image = contrast_stretching(new_image, T);
 
         cv::GaussianBlur(new_image, new_image, cv::Size(s, s), sigma);
 

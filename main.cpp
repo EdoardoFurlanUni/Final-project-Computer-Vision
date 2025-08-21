@@ -26,6 +26,7 @@ int main(int argc, const char* argv[])
     double sum_accuracy = 0; // average distance by the true sum in the images
 
     // ----- LOAD IMAGES -----
+    // load images in dataset path
     std::vector<std::vector<cv::Mat>> dataset_images;
     dataset_images.reserve(dataset_images_paths.size());
     for (const std::string& folder : dataset_images_paths) {
@@ -34,6 +35,7 @@ int main(int argc, const char* argv[])
         dataset_images.push_back(images_in_folder);
     }
 
+    // load images in test path
     std::vector<cv::Mat> test_images = load_images_from_folder(test_images_path);
 
     // ----- PREPROCESSING (dataset and test) -----
@@ -41,6 +43,7 @@ int main(int argc, const char* argv[])
     int gaussian_kernel_size = 7;
     float gaussian_kernel_sigma = 1.5;
     
+    // preprocess dataset images
     std::vector<std::vector<cv::Mat>> preprocessed_dataset_images;
     preprocessed_dataset_images.reserve(dataset_images.size());
     for (const auto& imgs_in_folder : dataset_images) {
@@ -48,13 +51,15 @@ int main(int argc, const char* argv[])
         std::vector<cv::Mat> prep_imgs_in_folder = preprocess_images(imgs_in_folder, contrast_stretching_T, gaussian_kernel_size, gaussian_kernel_sigma);
         preprocessed_dataset_images.push_back(prep_imgs_in_folder);
     }
-    for (const auto& imgs_in_folder : preprocessed_dataset_images) {
-        for (const cv::Mat& img : imgs_in_folder) {
-            cv::imshow("Preprocessed Image", img);
-            cv::waitKey(0);
-        }
-    }
+    // // to show preprocessed images
+    // for (const auto& imgs_in_folder : preprocessed_dataset_images) {
+    //     for (const cv::Mat& img : imgs_in_folder) {
+    //         cv::imshow("Preprocessed Image", img);
+    //         cv::waitKey(0);
+    //     }
+    // }
 
+    // preprocess test images
     std::vector<cv::Mat> preprocessed_test_images = preprocess_images(test_images, contrast_stretching_T, gaussian_kernel_size, gaussian_kernel_sigma);
 
     // ----- HOUGH CIRCLES (dataset and test) -----
@@ -102,24 +107,40 @@ int main(int argc, const char* argv[])
     // ----- TEMPLATE MATCHING (test) -----
 
     for (const cv::Mat& img : preprocessed_test_images) {
+        // convert to BGR to draw colored bbox
         cv::Mat img_3ch;
         cv::cvtColor(img, img_3ch, cv::COLOR_GRAY2BGR);
+
+        std::vector<cv::Point> positions_found;
+
         for (size_t i = 0; i < coins_classes.size(); i++) {
             for (const cv::Mat& template_img : preprocessed_dataset_images[i]) {
+
                 cv::Mat result;
                 //Methods available for template matching: cv::TM_CCOEFF, cv::TM_CCOEFF_NORMED, cv::TM_CCORR, cv::TM_CCORR_NORMED, cv::TM_SQDIFF, cv::TM_SQDIFF_NORMED
-                cv::matchTemplate(img, template_img, result, cv::TM_CCOEFF_NORMED);
+                cv::matchTemplate(img, template_img, result, cv::TM_CCORR_NORMED);
                 //cv::normalize( result, result, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
+
                 double minVal, maxVal;
                 cv::Point minLoc, maxLoc;
                 cv::minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc);
+
                 if (maxVal > 0.8) { // threshold for a good match
-                    cv::rectangle(img_3ch, maxLoc, cv::Point(maxLoc.x + template_img.cols, maxLoc.y + template_img.rows), cv::Scalar(0, 255, 0), 2);
-                    cv::putText(img_3ch, coins_classes[i], cv::Point(maxLoc.x, maxLoc.y - 10), cv::FONT_HERSHEY_SIMPLEX, 3, cv::Scalar(0, 255, 0), 2);
-                    std::cout << "Found " << coins_classes[i] << " at location: " << maxLoc << " with confidence: " << maxVal << std::endl;
+                    cv::Point center = cv::Point(maxLoc.x + template_img.cols/2, maxLoc.y + template_img.rows/2);
+
+                    // check if it has been already found
+                    if (!exists_near_point(center, positions_found, template_img.cols/2)) {
+                        positions_found.push_back(center);
+                        cv::circle(img_3ch, center, template_img.rows/2, cv::Scalar(0, 255, 0), 5);
+                        // cv::rectangle(img_3ch, maxLoc, cv::Point(maxLoc.x + template_img.cols, maxLoc.y + template_img.rows), cv::Scalar(0, 255, 0), 2);
+                        cv::putText(img_3ch, coins_classes[i], cv::Point(maxLoc.x, maxLoc.y - 10), cv::FONT_HERSHEY_SIMPLEX, 3, cv::Scalar(0, 255, 0), 5);
+                        std::cout << "Found " << coins_classes[i] << " at location: " << maxLoc << " with confidence: " << maxVal << std::endl;
+                    }
                 }
+                
             }
         }
+        cv::namedWindow("Template Matching", cv::WINDOW_KEEPRATIO);
         cv::imshow("Template Matching", img_3ch);
         cv::waitKey(0);
     }
@@ -128,8 +149,6 @@ int main(int argc, const char* argv[])
     // ----- COMPUTE OUTPUT (test) -----
 
     // ----- PERFORMANCE METRICS (test) -----
-
-    std::cout << "si" << std::endl;
     
     return 0;
 }

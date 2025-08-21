@@ -73,4 +73,16 @@ cv::Mat display_hist(cv::Mat I, int bins, std::string name);
 std::vector<cv::Mat> preprocess_images(const std::vector<cv::Mat>& images, float T, int s, float sigma);
 
 
+// ----- TEMPLATE MATCHING -----
+/**
+ * @brief Checks if there is a point near the target within a minimum distance
+ * 
+ * @param target the reference point
+ * @param points vector of points to check
+ * @param min_distance minimum distance to consider a point as "near"
+ * 
+ * @return True if a nearby point exists, false otherwise
+ */
+bool exists_near_point(const cv::Point& target, const std::vector<cv::Point>& points, const double min_distance);
+
 #endif // MAIN_H
