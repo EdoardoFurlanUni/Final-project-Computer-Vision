@@ -85,4 +85,14 @@ std::vector<cv::Mat> preprocess_images(const std::vector<cv::Mat>& images, float
  */
 bool exists_near_point(const cv::Point& target, const std::vector<cv::Point>& points, const double min_distance);
 
+/**
+ * @brief Creates rotated versions of a template image
+ *
+ * @param templ template image to rotate
+ * @param num_rotations number of rotations
+ * 
+ * @return Vector of rotated images
+ */
+std::vector<cv::Mat> rotate_template(const cv::Mat& templ, const int num_rotations);
+
 #endif // MAIN_H

@@ -115,29 +115,40 @@ int main(int argc, const char* argv[])
 
         for (size_t i = 0; i < coins_classes.size(); i++) {
             for (const cv::Mat& template_img : preprocessed_dataset_images[i]) {
-
-                cv::Mat result;
-                //Methods available for template matching: cv::TM_CCOEFF, cv::TM_CCOEFF_NORMED, cv::TM_CCORR, cv::TM_CCORR_NORMED, cv::TM_SQDIFF, cv::TM_SQDIFF_NORMED
-                cv::matchTemplate(img, template_img, result, cv::TM_CCORR_NORMED);
-                //cv::normalize( result, result, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
-
-                double minVal, maxVal;
-                cv::Point minLoc, maxLoc;
-                cv::minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc);
-
-                if (maxVal > 0.8) { // threshold for a good match
-                    cv::Point center = cv::Point(maxLoc.x + template_img.cols/2, maxLoc.y + template_img.rows/2);
-
-                    // check if it has been already found
-                    if (!exists_near_point(center, positions_found, template_img.cols/2)) {
-                        positions_found.push_back(center);
-                        cv::circle(img_3ch, center, template_img.rows/2, cv::Scalar(0, 255, 0), 5);
-                        // cv::rectangle(img_3ch, maxLoc, cv::Point(maxLoc.x + template_img.cols, maxLoc.y + template_img.rows), cv::Scalar(0, 255, 0), 2);
-                        cv::putText(img_3ch, coins_classes[i], cv::Point(maxLoc.x, maxLoc.y - 10), cv::FONT_HERSHEY_SIMPLEX, 3, cv::Scalar(0, 255, 0), 5);
-                        std::cout << "Found " << coins_classes[i] << " at location: " << maxLoc << " with confidence: " << maxVal << std::endl;
-                    }
-                }
                 
+                // search for the best match (at least > 0.8) among all the rotations of the template
+                double bestVal = 0;
+                cv::Point bestLoc = cv::Point(-1, -1);
+                std::vector<cv::Mat> rotations = rotate_template(template_img, 8);
+                for (const cv::Mat& rotated_template : rotations) {
+
+                    cv::Mat result;
+                    //Methods available for template matching: cv::TM_CCOEFF, cv::TM_CCOEFF_NORMED, cv::TM_CCORR, cv::TM_CCORR_NORMED, cv::TM_SQDIFF, cv::TM_SQDIFF_NORMED
+                    cv::matchTemplate(img, rotated_template, result, cv::TM_CCORR_NORMED);
+                    //cv::normalize( result, result, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
+
+                    double minVal, maxVal;
+                    cv::Point minLoc, maxLoc;
+                    cv::minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc);
+                    if (maxVal > bestVal) {
+                        bestVal = maxVal;
+                        bestLoc = maxLoc;
+                    }
+
+                }
+
+                if (bestVal > 0.8) { // threshold for a good match
+                        cv::Point center = cv::Point(bestLoc.x + template_img.cols/2, bestLoc.y + template_img.rows/2);
+
+                        // check if it has been already found
+                        if (!exists_near_point(center, positions_found, template_img.cols/2)) {
+                            positions_found.push_back(center);
+                            cv::circle(img_3ch, center, template_img.rows/2, cv::Scalar(0, 255, 0), 5);
+                            // cv::rectangle(img_3ch, bestLoc, cv::Point(bestLoc.x + template_img.cols, bestLoc.y + template_img.rows), cv::Scalar(0, 255, 0), 5);
+                            cv::putText(img_3ch, coins_classes[i], cv::Point(bestLoc.x, bestLoc.y - 10), cv::FONT_HERSHEY_SIMPLEX, 3, cv::Scalar(0, 255, 0), 5);
+                            std::cout << "Found " << coins_classes[i] << " at location: " << bestLoc << " with confidence: " << bestVal << std::endl;
+                        }
+                    }
             }
         }
         cv::namedWindow("Template Matching", cv::WINDOW_KEEPRATIO);
