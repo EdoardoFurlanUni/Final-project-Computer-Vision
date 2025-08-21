@@ -30,10 +30,11 @@ int main(int argc, const char* argv[])
     cv::namedWindow("test image", cv::WINDOW_KEEPRATIO);
     cv::namedWindow("canny image", cv::WINDOW_KEEPRATIO);
 
-    // se vuoi plottare il kernel gaussiano
+    // // se vuoi plottare il kernel gaussiano
     // cv::Mat gaussNorm;
-    // cv::normalize(cv::getGaussianKernel(5, 1.5) * cv::getGaussianKernel(5, 1.5).t(), gaussNorm, 0, 255, cv::NORM_MINMAX, CV_8U);
-    // cv::resize(gaussNorm, gaussNorm, cv::Size(), 20, 20, cv::INTER_NEAREST);
+    // cv::normalize(cv::getGaussianKernel(101, 0) * cv::getGaussianKernel(101, 0).t(), gaussNorm, 0, 255, cv::NORM_MINMAX, CV_8U);
+    // std::cout << cv::getGaussianKernel(5, 0) << std::endl;
+    // cv::resize(gaussNorm, gaussNorm, cv::Size(), 500, 500, cv::INTER_NEAREST);
     // cv::imshow("2D Gaussian Kernel", gaussNorm);
 
     cv::imshow("test image", image);

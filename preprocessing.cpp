@@ -5,12 +5,15 @@
 
 cv::Mat correct_illumination(cv::Mat I){
     cv::Mat illumination, corrected;
+
     // apply a Gaussian filter with a large kernel to estimate the illumination
     cv::GaussianBlur(I, illumination, cv::Size(101, 101), 0);
+
     // convert the images to float for division
     I.convertTo(I, CV_32F);
     illumination.convertTo(illumination, CV_32F);
     cv::Scalar meanVal = cv::mean(illumination);
+    
     // divide the original image by the illumination
     // and multiply by the mean value of the illumination (normalization)
     cv::divide(I, illumination, corrected);
@@ -70,16 +73,6 @@ cv::Mat display_hist(cv::Mat I, int bins, std::string name) {
     return hist;
 }
 
-/**
- * @brief Applies preprocessing to a vector of images
- * 
- * @param images Vector of input images
- * @param T threshold for contrast stretching
- * @param s size of the Gaussian kernel
- * @param sigma standard deviation for GaussianBlur
- * 
- * @return Vector of preprocessed images
- */
 std::vector<cv::Mat> preprocess_images(const std::vector<cv::Mat>& images, float T, int s, float sigma) {
     std::vector<cv::Mat> processed_images;
     processed_images.reserve(images.size());
