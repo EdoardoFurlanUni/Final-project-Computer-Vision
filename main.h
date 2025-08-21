@@ -5,6 +5,7 @@
 #include <string>
 #include <tuple>
 #include <filesystem>
+#include <chrono>   // time measurement
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/features2d.hpp>
@@ -72,5 +73,37 @@ cv::Mat display_hist(cv::Mat I, int bins, std::string name);
  */
 std::vector<cv::Mat> preprocess_images(const std::vector<cv::Mat>& images, float T, int s, float sigma);
 
+
+// ----- TEMPLATE MATCHING -----
+
+/**
+ * @brief Finds all the matches which have values above a certain threshold
+ *
+ * @param result result matrix (output of matchTemplate)
+ * @param threshold threshold value
+ * 
+ * @return Vector of (position, value) tuples
+ */
+std::vector<std::tuple<cv::Point, float>> get_positions_and_values_above_threshold(const cv::Mat& result, double threshold);
+/**
+ * @brief Checks if there is a point near the target within a minimum distance
+ * 
+ * @param target the reference point
+ * @param points vector of points to check
+ * @param min_distance minimum distance to consider a point as "near"
+ * 
+ * @return True if a nearby point exists, false otherwise
+ */
+bool exists_near_point(const cv::Point& target, const std::vector<cv::Point>& points, const double min_distance);
+
+/**
+ * @brief Creates rotated versions of a template image
+ *
+ * @param templ template image to rotate
+ * @param num_rotations number of rotations
+ * 
+ * @return Vector of rotated images
+ */
+std::vector<cv::Mat> rotate_template(const cv::Mat& templ, const int num_rotations);
 
 #endif // MAIN_H

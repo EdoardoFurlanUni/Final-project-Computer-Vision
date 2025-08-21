@@ -18,6 +18,7 @@ cv::Mat correct_illumination(cv::Mat I){
     // and multiply by the mean value of the illumination (normalization)
     cv::divide(I, illumination, corrected);
     corrected *= cv::mean(illumination)[0];
+    // std::cout << "Mean value before conversion: " << cv::mean(illumination)[0] << std::endl;
     corrected.convertTo(corrected, CV_8U);
 
     return corrected;
@@ -78,8 +79,11 @@ std::vector<cv::Mat> preprocess_images(const std::vector<cv::Mat>& images, float
     processed_images.reserve(images.size());
 
     for (const cv::Mat& img : images) {
+        cv::Mat new_image = img;
 
-        cv::Mat new_image = contrast_stretching(img, T);
+        // new_image = correct_illumination(new_image);
+
+        new_image = contrast_stretching(new_image, T);
 
         cv::GaussianBlur(new_image, new_image, cv::Size(s, s), sigma);
 
