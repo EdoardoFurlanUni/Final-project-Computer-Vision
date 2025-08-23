@@ -43,14 +43,14 @@ std::vector<cv::Mat> load_images_from_folder(const std::string& folders);
 cv::Mat correct_illumination(cv::Mat I);
 
 /**
- * @brief Apply the transformation T(r) = {if r <= T then L/T *r else L}
+ * @brief Apply the transformation T(r) = {where x1 < r < x2 then r/(x2-x1)*(r-x1)}
  * 
  * @param I gray scale image
- * @param threshold threshold T
+ * @param points points of the intersections of the piece wise linear transformation
  * 
  * @return The resulting image after the transformation
 **/
-cv::Mat contrast_stretching(cv::Mat I, int threshold, int max_coin_value = 200);
+cv::Mat contrast_stretching(const cv::Mat& I, const std::vector<cv::Point2f>& points);
 
 /**
  * @brief Display the histogram of a gray scale image
@@ -67,25 +67,25 @@ cv::Mat display_hist(cv::Mat I, int bins, std::string name);
  * @brief Applies preprocessing to a vector of images
  * 
  * @param images Vector of input images
- * @param T threshold for contrast stretching
+ * @param param points points of the intersections of the piece wise linear transformation
  * @param s size of the Gaussian kernel
  * @param sigma standard deviation for GaussianBlur
  * 
  * @return Vector of preprocessed images
  */
-std::vector<cv::Mat> preprocess_images(const std::vector<cv::Mat>& images, float T, int s, float sigma);
+std::vector<cv::Mat> preprocess_images(const std::vector<cv::Mat>& images, const std::vector<cv::Point2f>& points, int s, float sigma);
 
 /**
  * @brief Applies preprocessing to the images in the test set, aims to avoid too bright areas
  * 
  * @param images Vector of input images
- * @param T threshold for contrast stretching
+ * @param param points points of the intersections of the piece wise linear transformation
  * @param s size of the Gaussian kernel
  * @param sigma standard deviation for GaussianBlur
  * 
  * @return Vector of preprocessed images
  */
- std::vector<cv::Mat> preprocess_images_test(const std::vector<cv::Mat>& images, float T, int s, float sigma);
+ std::vector<cv::Mat> preprocess_images_test(const std::vector<cv::Mat>& images, const std::vector<cv::Point2f>& points, int s, float sigma);
 
 
 // ----- TEMPLATE MATCHING -----

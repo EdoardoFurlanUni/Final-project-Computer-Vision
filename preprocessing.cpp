@@ -24,22 +24,28 @@ cv::Mat correct_illumination(cv::Mat I){
     return corrected;
 }
 
+cv::Mat contrast_stretching(const cv::Mat& I, const std::vector<cv::Point2f>& points) {
+    cv::Mat stretched = cv::Mat::zeros(I.size(), I.type());
 
-cv::Mat contrast_stretching(cv::Mat I, int threshold, int max_coin_value) {
-    // mask contains pixel of value <= threshold
-    cv::Mat mask;
-    cv::threshold(I, mask, threshold, 255, cv::THRESH_BINARY_INV);
+    for (int i = 1; i < points.size(); ++i) {
+        cv::Point2f A = points[i-1];
+        cv::Point2f B = points[i];
 
-    // Multiply pixel by L/threshold
-    cv::Mat temp;
-    I.convertTo(temp, CV_32F);
-    temp = temp * max_coin_value/threshold;
-    temp.convertTo(temp, CV_8U);
+        // Crea maschera per pixel nell'intervallo [A.x, B.x]
+        cv::Mat mask;
+        cv::inRange(I, cv::Scalar(A.x), cv::Scalar(B.x), mask);
 
-    // Apply the mask
-    cv::Mat stretched;
-    stretched = cv::Mat::ones(I.size(), I.type()) * 255;       // all pixel to 255
-    temp.copyTo(stretched, mask);                              // overwrite pixel < threshold
+        // Applica la trasformazione lineare solo ai pixel selezionati
+        for (int r = 0; r < I.rows; ++r) {
+            for (int c = 0; c < I.cols; ++c) {
+                if (mask.at<uchar>(r, c)) {
+                    float val = I.at<uchar>(r, c);
+                    float new_val = A.y + (val - A.x) * (B.y - A.y) / (B.x - A.x);
+                    stretched.at<uchar>(r, c) = cv::saturate_cast<uchar>(new_val);
+                }
+            }
+        }
+    }
 
     return stretched;
 }
@@ -74,7 +80,7 @@ cv::Mat display_hist(cv::Mat I, int bins, std::string name) {
     return hist;
 }
 
-std::vector<cv::Mat> preprocess_images(const std::vector<cv::Mat>& images, float T, int s, float sigma) {
+std::vector<cv::Mat> preprocess_images(const std::vector<cv::Mat>& images, const std::vector<cv::Point2f>& points, int s, float sigma) {
     std::vector<cv::Mat> processed_images;
     processed_images.reserve(images.size());
 
@@ -82,7 +88,7 @@ std::vector<cv::Mat> preprocess_images(const std::vector<cv::Mat>& images, float
         cv::Mat new_image = img;
 
         // new_image = correct_illumination(new_image);
-        new_image = contrast_stretching(img, T);
+        new_image = contrast_stretching(img, points);
 
         cv::GaussianBlur(new_image, new_image, cv::Size(s, s), sigma);
 
@@ -91,14 +97,14 @@ std::vector<cv::Mat> preprocess_images(const std::vector<cv::Mat>& images, float
 
     return processed_images;
 }
-std::vector<cv::Mat> preprocess_images_test(const std::vector<cv::Mat>& images, float T, int s, float sigma) {
+std::vector<cv::Mat> preprocess_images_test(const std::vector<cv::Mat>& images, const std::vector<cv::Point2f>& points, int s, float sigma) {
     std::vector<cv::Mat> processed_images;
     processed_images.reserve(images.size());
 
     for (const cv::Mat& img : images) {
         cv::Mat new_image = img;
 
-        new_image = contrast_stretching(new_image, T);
+        new_image = contrast_stretching(new_image, points);
         // new_image = correct_illumination(new_image);
         
         cv::GaussianBlur(new_image, new_image, cv::Size(s, s), sigma);

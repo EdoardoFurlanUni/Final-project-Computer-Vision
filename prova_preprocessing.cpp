@@ -1,68 +1,66 @@
 #include "main.h"
 
-cv::Mat image;
-cv::Mat processed_image;
-int lowThreshold = 100;
-int highThreshold = 160;
-const int maxThreshold = 300;
+std::vector<std::string> filenames;
+int sigma = 150;
+int maxSigma = 300;
+
 
 void on_trackbar(int pos, void* userdata) {
-    cv::Mat canny_image;
+    std::vector<cv::Mat> concatenated_images;
+    int ref_width = 500;
 
-    lowThreshold = cv::getTrackbarPos("Low Threshold", "process");
-    highThreshold = cv::getTrackbarPos("High Threshold", "process");
+    // aggiorna tutti i parametri delle trackbar
+    sigma = cv::getTrackbarPos("Sigma", "process");
 
-    if (lowThreshold > highThreshold) {
-        cv::setTrackbarPos("Low Threshold", "process", highThreshold);
-        lowThreshold = highThreshold;
+    for (const std::string& filename : filenames) {
+        cv::Mat image = cv::imread(filename, cv::IMREAD_GRAYSCALE);
+        cv::Mat processed_image = image.clone();
+        
+        // processa
+        std::vector<cv::Point2f> points_contrast_stretching = {cv::Point2f(0,0), cv::Point2f(0.9*255, 255), cv::Point2f(255, 255)};
+        processed_image = contrast_stretching(processed_image, points_contrast_stretching);
+        cv::Mat mask;
+        cv::threshold(processed_image, mask, 0, 255, cv::THRESH_BINARY_INV | cv::THRESH_OTSU); // white coins
+        cv::Mat kernel = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5));
+        cv::dilate(mask, mask, kernel);
+        cv::erode(mask, mask, kernel);
+        processed_image = mask;
+
+        // std::vector<cv::Point2f> points_contrast_stretching = {cv::Point2f(0,0), cv::Point2f(0.8*255, 255), cv::Point2f(255, 255)};
+        // processed_image = contrast_stretching(processed_image, points_contrast_stretching);
+        // cv::GaussianBlur(processed_image, processed_image, cv::Size(5,5), sigma/100.0);
+
+        // resize images
+        cv::resize(image, image, cv::Size(ref_width, static_cast<int>(image.rows * ref_width / static_cast<float>(image.cols))));
+        cv::resize(processed_image, processed_image, cv::Size(ref_width, static_cast<int>(processed_image.rows * ref_width / static_cast<float>(processed_image.cols))));
+
+        // concatenate horizontally
+        cv::Mat concatenatedH;
+        cv::hconcat(image, processed_image, concatenatedH);
+        concatenated_images.push_back(concatenatedH);
     }
-    cv::Canny(processed_image, canny_image, lowThreshold, highThreshold);
-    cv::Mat concatenated;
-    std::vector<cv::Mat> images = {image, processed_image, canny_image};
-    cv::hconcat(images, concatenated);
-    cv::imshow("process", concatenated);
+
+    // concatenate vertically
+    cv::Mat concatenatedV;
+    cv::vconcat(concatenated_images, concatenatedV);
+    cv::imshow("process", concatenatedV);
 }
 
-int main(int argc, const char* argv[])
-{    
-    const std::vector<std::string> filenames = {"../template/images/10_CENT/IMG_22_temp.jpg", "../test/images/IMG_24.jpg"};
-    for (const std::string& filename : filenames) {
-        image = cv::imread(filename, cv::IMREAD_GRAYSCALE);
-        processed_image = image.clone();
+int main(int argc, const char* argv[]) {
 
-        // std::vector<cv::Mat> rotated_images = rotate_template(image, 8);
-        // cv::namedWindow("template", cv::WINDOW_KEEPRATIO);
-
-        // for (size_t i = 0; i < rotated_images.size(); i++) {
-        //     cv::imshow("template", rotated_images[i]);
-        //     cv::waitKey(0);
-        // }
-
-        // processed_image = contrast_stretching(image, 0.8*255);
-        cv::GaussianBlur(processed_image, processed_image, cv::Size(5,5), 1.5);
-        processed_image = correct_illumination(processed_image);
-
-        cv::namedWindow("process", cv::WINDOW_KEEPRATIO);
-
-        // // se vuoi plottare il kernel gaussiano
-        // cv::Mat gaussNorm;
-        // cv::normalize(cv::getGaussianKernel(101, 0) * cv::getGaussianKernel(101, 0).t(), gaussNorm, 0, 255, cv::NORM_MINMAX, CV_8U);
-        // std::cout << cv::getGaussianKernel(5, 0) << std::endl;
-        // cv::resize(gaussNorm, gaussNorm, cv::Size(), 500, 500, cv::INTER_NEAREST);
-        // cv::imshow("2D Gaussian Kernel", gaussNorm);
+    filenames = {"../template/images/10_CENT/IMG_22_temp.jpg", "../test/images/IMG_24.jpg"};
+    cv::namedWindow("process", cv::WINDOW_KEEPRATIO);
         
-        // Create trackbars for Canny thresholds
-        cv::createTrackbar("High Threshold", "process", NULL, maxThreshold, on_trackbar);
-        cv::createTrackbar("Low Threshold", "process", NULL, maxThreshold, on_trackbar);
+    // Create trackbars
+    cv::createTrackbar("Sigma", "process", NULL, maxSigma, on_trackbar);
 
-        cv::setTrackbarPos("High Threshold", "process", highThreshold);
-        cv::setTrackbarPos("Low Threshold", "process", lowThreshold);
+    // set initial position
+    cv::setTrackbarPos("Sigma", "process", sigma);
 
-        // Initial call to display image
-        on_trackbar(0, 0);
+    // Initial call to display image
+    on_trackbar(0, 0);
 
-        cv::waitKey(0);
-    }
+    cv::waitKey(0);
 
     return 0;
 }

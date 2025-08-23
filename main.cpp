@@ -39,7 +39,7 @@ int main(int argc, const char* argv[])
     std::vector<cv::Mat> test_images = load_images_from_folder(test_images_path);
 
     // ----- PREPROCESSING (dataset and test) -----
-    float contrast_stretching_T = 0.5*255; 
+    std::vector<cv::Point2f> points_contrast_stretching = {cv::Point2f(0,0), cv::Point2f(0.75*255, 255), cv::Point2f(255, 255)};
     int gaussian_kernel_size = 5;
     float gaussian_kernel_sigma = 1.5;
     
@@ -48,7 +48,7 @@ int main(int argc, const char* argv[])
     preprocessed_dataset_images.reserve(dataset_images.size());
     for (const auto& imgs_in_folder : dataset_images) {
 
-        std::vector<cv::Mat> prep_imgs_in_folder = preprocess_images(imgs_in_folder, contrast_stretching_T, gaussian_kernel_size, gaussian_kernel_sigma);
+        std::vector<cv::Mat> prep_imgs_in_folder = preprocess_images(imgs_in_folder, points_contrast_stretching, gaussian_kernel_size, gaussian_kernel_sigma);
         preprocessed_dataset_images.push_back(prep_imgs_in_folder);
     }
     // // to show preprocessed images
@@ -60,7 +60,7 @@ int main(int argc, const char* argv[])
     // }
 
     // preprocess test images
-    std::vector<cv::Mat> preprocessed_test_images = preprocess_images_test(test_images, contrast_stretching_T, gaussian_kernel_size, gaussian_kernel_sigma);
+    std::vector<cv::Mat> preprocessed_test_images = preprocess_images_test(test_images, points_contrast_stretching, gaussian_kernel_size, gaussian_kernel_sigma);
 
     // ----- HOUGH CIRCLES (dataset and test) -----
     /* for (const auto& imgs_in_folder : preprocessed_dataset_images) {
