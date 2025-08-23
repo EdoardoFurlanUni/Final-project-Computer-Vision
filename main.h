@@ -100,15 +100,16 @@ std::vector<cv::Mat> preprocess_images(const std::vector<cv::Mat>& images, float
  */
 std::vector<std::tuple<cv::Point, float>> get_positions_and_values_above_threshold(const cv::Mat& result, double threshold);
 /**
- * @brief Checks if there is a point near the target within a minimum distance
+ * @brief Adds the new_point to the list if there is no nearby point within min_distance. 
+ * If the new_point has a higher confidence value, it replaces the existing point, otherwise it is discarded
  * 
- * @param target the reference point
+ * @param new_point the point to add
  * @param points vector of points to check
  * @param min_distance minimum distance to consider a point as "near"
  * 
  * @return True if a nearby point exists, false otherwise
  */
-bool exists_near_point(const cv::Point& target, std::vector<std::tuple<cv::Point, float>>& points, double min_distance, double confidence);
+bool add_near_point(const std::tuple<cv::Point, float, float, std::string>& new_point, std::vector<std::tuple<cv::Point, float, float, std::string>>& points, double min_distance);
 
 /**
  * @brief Creates rotated versions of a template image

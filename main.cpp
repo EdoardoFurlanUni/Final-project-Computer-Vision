@@ -52,12 +52,12 @@ int main(int argc, const char* argv[])
         preprocessed_dataset_images.push_back(prep_imgs_in_folder);
     }
     // // to show preprocessed images
-    for (const auto& imgs_in_folder : preprocessed_dataset_images) {
-         for (const cv::Mat& img : imgs_in_folder) {
-             cv::imshow("Preprocessed Image", img);
-             cv::waitKey(0);
-        }
-    }
+    // for (const auto& imgs_in_folder : preprocessed_dataset_images) {
+    //      for (const cv::Mat& img : imgs_in_folder) {
+    //          cv::imshow("Preprocessed Image", img);
+    //          cv::waitKey(0);
+    //     }
+    // }
 
     // preprocess test images
     std::vector<cv::Mat> preprocessed_test_images = preprocess_images_test(test_images, contrast_stretching_T, gaussian_kernel_size, gaussian_kernel_sigma);
@@ -105,6 +105,7 @@ int main(int argc, const char* argv[])
         cv::waitKey(0);*/
     //}
     // ----- TEMPLATE MATCHING (test) -----
+    cv::namedWindow("Template Matching", cv::WINDOW_KEEPRATIO);
 
     for (const cv::Mat& img : preprocessed_test_images) {
         auto start = std::chrono::high_resolution_clock::now();
@@ -113,7 +114,7 @@ int main(int argc, const char* argv[])
         cv::Mat img_3ch;
         cv::cvtColor(img, img_3ch, cv::COLOR_GRAY2BGR);
 
-        std::vector<std::tuple<cv::Point, float>> positions_found;
+        std::vector<std::tuple<cv::Point, float, float, std::string>> positions_found;     // center, radius, confidence, class
 
         for (size_t i = 0; i < coins_classes.size(); i++) {
             for (const cv::Mat& template_img : preprocessed_dataset_images[i]) {
@@ -136,20 +137,31 @@ int main(int argc, const char* argv[])
                     cv::Point center = cv::Point(loc.x + template_img.cols/2, loc.y + template_img.rows/2);
                     float radius = template_img.rows/2;
 
+                    std::tuple<cv::Point, float, float, std::string> new_point = std::make_tuple(center, radius, val, coins_classes[i]);
+
                     // check if it has been already found
-                    if (!exists_near_point(center, positions_found, radius, val)) {
+                    if (!add_near_point(new_point, positions_found, radius)) {
                         for(const auto& d : positions_found) {
                             cv::Point p = std::get<0>(d);
-                            float v = std::get<1>(d);
+                            float v = std::get<2>(d);
                             std::cout << "current point: " << p << " with confidence: " << v << std::endl;
                         }
-                        cv::circle(img_3ch, center, radius, cv::Scalar(0, 255, 0), 5);
-                        cv::putText(img_3ch, coins_classes[i], cv::Point(loc.x, loc.y - 10), cv::FONT_HERSHEY_SIMPLEX, 3, cv::Scalar(0, 255, 0), 5);
-                        std::cout << "Found " << coins_classes[i] << " at location: " << loc << " with confidence: " << val << std::endl;
+                        std::cout << "Added " << coins_classes[i] << " at location: " << loc << " with confidence: " << val << std::endl;
                     }
                 }
                 //}
             }
+        }
+
+        // Draw all labels
+        for (const auto& d : positions_found) {
+            cv::Point p = std::get<0>(d);
+            float r = std::get<1>(d);
+            float v = std::get<2>(d);
+            std::string lbl = std::get<3>(d);
+
+            cv::circle(img_3ch, p, r, cv::Scalar(0, 255, 0), 5);
+            cv::putText(img_3ch, lbl, cv::Point(p.x, p.y - 10), cv::FONT_HERSHEY_SIMPLEX, 3, cv::Scalar(0, 255, 0), 5);
         }
 
         // Measure the time taken for template matching
@@ -157,8 +169,8 @@ int main(int argc, const char* argv[])
         std::chrono::duration<double> elapsed = end - start;
         std::cout << "Elapsed time: " << elapsed.count() << " seconds" << std::endl;
 
-        cv::namedWindow("Template Matching", cv::WINDOW_KEEPRATIO);
         cv::imshow("Template Matching", img_3ch);
+        std::cout << "number of matches: " << positions_found.size() << std::endl;
         cv::waitKey(0);
     }
 
