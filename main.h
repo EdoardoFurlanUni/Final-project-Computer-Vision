@@ -10,6 +10,8 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/features2d.hpp>
 
+using Detection = std::tuple<cv::Point, double>;
+
 // ----- FILE MANAGEMENT -----
 /**
  * @brief Returns a vector of file paths in the given directory.
@@ -48,7 +50,7 @@ cv::Mat correct_illumination(cv::Mat I);
  * 
  * @return The resulting image after the transformation
 **/
-cv::Mat contrast_stretching(cv::Mat I, int threshold);
+cv::Mat contrast_stretching(cv::Mat I, int threshold, int max_coin_value = 200);
 
 /**
  * @brief Display the histogram of a gray scale image
@@ -73,6 +75,18 @@ cv::Mat display_hist(cv::Mat I, int bins, std::string name);
  */
 std::vector<cv::Mat> preprocess_images(const std::vector<cv::Mat>& images, float T, int s, float sigma);
 
+/**
+ * @brief Applies preprocessing to the images in the test set, aims to avoid too bright areas
+ * 
+ * @param images Vector of input images
+ * @param T threshold for contrast stretching
+ * @param s size of the Gaussian kernel
+ * @param sigma standard deviation for GaussianBlur
+ * 
+ * @return Vector of preprocessed images
+ */
+ std::vector<cv::Mat> preprocess_images_test(const std::vector<cv::Mat>& images, float T, int s, float sigma);
+
 
 // ----- TEMPLATE MATCHING -----
 
@@ -94,7 +108,7 @@ std::vector<std::tuple<cv::Point, float>> get_positions_and_values_above_thresho
  * 
  * @return True if a nearby point exists, false otherwise
  */
-bool exists_near_point(const cv::Point& target, const std::vector<cv::Point>& points, const double min_distance);
+bool exists_near_point(const cv::Point& target, std::vector<std::tuple<cv::Point, float>>& points, double min_distance, double confidence);
 
 /**
  * @brief Creates rotated versions of a template image

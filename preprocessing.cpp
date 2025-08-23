@@ -25,7 +25,7 @@ cv::Mat correct_illumination(cv::Mat I){
 }
 
 
-cv::Mat contrast_stretching(cv::Mat I, int threshold) {
+cv::Mat contrast_stretching(cv::Mat I, int threshold, int max_coin_value) {
     // mask contains pixel of value <= threshold
     cv::Mat mask;
     cv::threshold(I, mask, threshold, 255, cv::THRESH_BINARY_INV);
@@ -33,7 +33,7 @@ cv::Mat contrast_stretching(cv::Mat I, int threshold) {
     // Multiply pixel by L/threshold
     cv::Mat temp;
     I.convertTo(temp, CV_32F);
-    temp = temp * 255/threshold;
+    temp = temp * max_coin_value/threshold;
     temp.convertTo(temp, CV_8U);
 
     // Apply the mask
@@ -82,9 +82,25 @@ std::vector<cv::Mat> preprocess_images(const std::vector<cv::Mat>& images, float
         cv::Mat new_image = img;
 
         // new_image = correct_illumination(new_image);
+        new_image = contrast_stretching(img, T);
+
+        cv::GaussianBlur(new_image, new_image, cv::Size(s, s), sigma);
+
+        processed_images.push_back(new_image);
+    }
+
+    return processed_images;
+}
+std::vector<cv::Mat> preprocess_images_test(const std::vector<cv::Mat>& images, float T, int s, float sigma) {
+    std::vector<cv::Mat> processed_images;
+    processed_images.reserve(images.size());
+
+    for (const cv::Mat& img : images) {
+        cv::Mat new_image = img;
 
         new_image = contrast_stretching(new_image, T);
-
+        // new_image = correct_illumination(new_image);
+        
         cv::GaussianBlur(new_image, new_image, cv::Size(s, s), sigma);
 
         processed_images.push_back(new_image);

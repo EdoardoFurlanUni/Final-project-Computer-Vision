@@ -15,19 +15,25 @@ std::vector<std::tuple<cv::Point, float>> get_positions_and_values_above_thresho
     return positions_and_values;
 }
 
-bool exists_near_point(const cv::Point& target, const std::vector<cv::Point>& points, const double min_distance) {
+bool exists_near_point(const cv::Point& target, std::vector<std::tuple<cv::Point, float>>& points, double min_distance, double confidence) {
 
-    for (const cv::Point& p : points) {
+    for (auto& d : points) {
+        cv::Point& p = std::get<0>(d);
+        float& val = std::get<1>(d);
 
         double dx = p.x - target.x;
         double dy = p.y - target.y;
         double distance = std::sqrt(dx*dx + dy*dy);
 
-        if (distance < min_distance) {
-
+        if (distance < min_distance){
+            if (confidence >= val) {
+                p = target;
+                val = confidence;
+            }
             return true;
         }
-    }
+    } 
+    points.push_back(std::make_tuple(target, confidence));
     return false;
 }
 

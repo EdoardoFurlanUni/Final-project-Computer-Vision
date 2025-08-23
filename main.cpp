@@ -39,8 +39,8 @@ int main(int argc, const char* argv[])
     std::vector<cv::Mat> test_images = load_images_from_folder(test_images_path);
 
     // ----- PREPROCESSING (dataset and test) -----
-    float contrast_stretching_T = 0.4*255; 
-    int gaussian_kernel_size = 7;
+    float contrast_stretching_T = 0.5*255; 
+    int gaussian_kernel_size = 5;
     float gaussian_kernel_sigma = 1.5;
     
     // preprocess dataset images
@@ -52,15 +52,15 @@ int main(int argc, const char* argv[])
         preprocessed_dataset_images.push_back(prep_imgs_in_folder);
     }
     // // to show preprocessed images
-    // for (const auto& imgs_in_folder : preprocessed_dataset_images) {
-    //     for (const cv::Mat& img : imgs_in_folder) {
-    //         cv::imshow("Preprocessed Image", img);
-    //         cv::waitKey(0);
-    //     }
-    // }
+    for (const auto& imgs_in_folder : preprocessed_dataset_images) {
+         for (const cv::Mat& img : imgs_in_folder) {
+             cv::imshow("Preprocessed Image", img);
+             cv::waitKey(0);
+        }
+    }
 
     // preprocess test images
-    std::vector<cv::Mat> preprocessed_test_images = preprocess_images(test_images, contrast_stretching_T, gaussian_kernel_size, gaussian_kernel_sigma);
+    std::vector<cv::Mat> preprocessed_test_images = preprocess_images_test(test_images, contrast_stretching_T, gaussian_kernel_size, gaussian_kernel_sigma);
 
     // ----- HOUGH CIRCLES (dataset and test) -----
     /* for (const auto& imgs_in_folder : preprocessed_dataset_images) {
@@ -113,38 +113,42 @@ int main(int argc, const char* argv[])
         cv::Mat img_3ch;
         cv::cvtColor(img, img_3ch, cv::COLOR_GRAY2BGR);
 
-        std::vector<cv::Point> positions_found;
+        std::vector<std::tuple<cv::Point, float>> positions_found;
 
         for (size_t i = 0; i < coins_classes.size(); i++) {
             for (const cv::Mat& template_img : preprocessed_dataset_images[i]) {
                 
                 // search for the best matches (at least > 0.95) among all the rotations of the template
-                std::vector<cv::Mat> rotations = rotate_template(template_img, 1);
-                for (const cv::Mat& rotated_template : rotations) {
+                //std::vector<cv::Mat> rotations = rotate_template(template_img, 1);
+                //for (const cv::Mat& rotated_template : rotations) {
 
-                    cv::Mat result;
-                    //Methods available for template matching: cv::TM_CCOEFF, cv::TM_CCOEFF_NORMED, cv::TM_CCORR, cv::TM_CCORR_NORMED, cv::TM_SQDIFF, cv::TM_SQDIFF_NORMED
-                    cv::matchTemplate(img, rotated_template, result, cv::TM_CCORR_NORMED);
-                    //cv::normalize( result, result, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
+                cv::Mat result;
+                //Methods available for template matching: cv::TM_CCOEFF, cv::TM_CCOEFF_NORMED, cv::TM_CCORR, cv::TM_CCORR_NORMED, cv::TM_SQDIFF, cv::TM_SQDIFF_NORMED
+                cv::matchTemplate(img, template_img, result, cv::TM_CCOEFF_NORMED);
+                //cv::normalize( result, result, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
 
-                    std::vector<std::tuple<cv::Point, float>> good_matches = get_positions_and_values_above_threshold(result, 0.95);
+                std::vector<std::tuple<cv::Point, float>> good_matches = get_positions_and_values_above_threshold(result, 0.7);
 
-                    for (const auto& match : good_matches) {
-                        cv::Point loc = std::get<0>(match);
-                        float val = std::get<1>(match);
+                for (const auto& match : good_matches) {
+                    cv::Point loc = std::get<0>(match);
+                    float val = std::get<1>(match);
 
-                        cv::Point center = cv::Point(loc.x + rotated_template.cols/2, loc.y + rotated_template.rows/2);
-                        float radius = rotated_template.rows/2;
+                    cv::Point center = cv::Point(loc.x + template_img.cols/2, loc.y + template_img.rows/2);
+                    float radius = template_img.rows/2;
 
-                        // check if it has been already found
-                        if (!exists_near_point(center, positions_found, radius)) {
-                            positions_found.push_back(center);
-                            cv::circle(img_3ch, center, radius, cv::Scalar(0, 255, 0), 5);
-                            cv::putText(img_3ch, coins_classes[i], cv::Point(loc.x, loc.y - 10), cv::FONT_HERSHEY_SIMPLEX, 3, cv::Scalar(0, 255, 0), 5);
-                            std::cout << "Found " << coins_classes[i] << " at location: " << loc << " with confidence: " << val << std::endl;
+                    // check if it has been already found
+                    if (!exists_near_point(center, positions_found, radius, val)) {
+                        for(const auto& d : positions_found) {
+                            cv::Point p = std::get<0>(d);
+                            float v = std::get<1>(d);
+                            std::cout << "current point: " << p << " with confidence: " << v << std::endl;
                         }
+                        cv::circle(img_3ch, center, radius, cv::Scalar(0, 255, 0), 5);
+                        cv::putText(img_3ch, coins_classes[i], cv::Point(loc.x, loc.y - 10), cv::FONT_HERSHEY_SIMPLEX, 3, cv::Scalar(0, 255, 0), 5);
+                        std::cout << "Found " << coins_classes[i] << " at location: " << loc << " with confidence: " << val << std::endl;
                     }
                 }
+                //}
             }
         }
 
