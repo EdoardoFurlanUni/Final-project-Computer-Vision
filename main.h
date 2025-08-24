@@ -90,15 +90,25 @@ std::vector<cv::Mat> preprocess_images(const std::vector<cv::Mat>& images, const
 
 // ----- TEMPLATE MATCHING -----
 
+struct DetectedCoin {
+    cv::Point center;   // Centro dell'oggetto
+    float radius;       // Raggio dell'oggetto
+    float confidence;   // Confidenza della rilevazione
+    std::string class_name; // Classe dell'oggetto
+};
+
 /**
- * @brief Finds all the matches which have values above a certain threshold
+ * @brief Finds all the non overlapping matches which have values above a certain threshold
  *
  * @param result result matrix (output of matchTemplate)
  * @param threshold threshold value
- * 
- * @return Vector of (position, value) tuples
+ * @param template_size size of the template used for matching
+ * @param label class of the template
+ *
+ * @return Vector of (center, radius, confidence, class) structs
  */
-std::vector<std::tuple<cv::Point, float>> get_positions_and_values_above_threshold(const cv::Mat& result, double threshold);
+std::vector<DetectedCoin> get_positions_and_values_above_threshold(const cv::Mat& result, double threshold, double template_size, std::string label);
+
 /**
  * @brief Adds the new_point to the list if there is no nearby point within min_distance. 
  * If the new_point has a higher confidence value, it replaces the existing point, otherwise it is discarded
@@ -109,7 +119,7 @@ std::vector<std::tuple<cv::Point, float>> get_positions_and_values_above_thresho
  * 
  * @return True if a nearby point exists, false otherwise
  */
-bool add_near_point(const std::tuple<cv::Point, float, float, std::string>& new_point, std::vector<std::tuple<cv::Point, float, float, std::string>>& points, double min_distance);
+bool add_near_point(const DetectedCoin& new_point, std::vector<DetectedCoin>& points, double min_distance);
 
 /**
  * @brief Creates rotated versions of a template image
