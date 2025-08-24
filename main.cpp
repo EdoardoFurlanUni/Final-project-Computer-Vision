@@ -52,12 +52,12 @@ int main(int argc, const char* argv[])
         preprocessed_dataset_images.push_back(prep_imgs_in_folder);
     }
     // // to show preprocessed images
-    // for (const auto& imgs_in_folder : preprocessed_dataset_images) {
-    //      for (const cv::Mat& img : imgs_in_folder) {
-    //          cv::imshow("Preprocessed Image", img);
-    //          cv::waitKey(0);
-    //     }
-    // }
+    for (const auto& imgs_in_folder : preprocessed_dataset_images) {
+        for (const cv::Mat& img : imgs_in_folder) {
+            cv::imshow("Preprocessed Image", img);
+            cv::waitKey(0);
+        }
+    }
 
     // preprocess test images
     std::vector<cv::Mat> preprocessed_test_images = preprocess_images_test(test_images, points_contrast_stretching, gaussian_kernel_size, gaussian_kernel_sigma);
@@ -118,27 +118,27 @@ int main(int argc, const char* argv[])
 
         for (size_t i = 0; i < coins_classes.size(); i++) {
             for (const cv::Mat& template_img : preprocessed_dataset_images[i]) {
-                
-                //std::vector<cv::Mat> rotations = rotate_template(template_img, 1);
-                //for (const cv::Mat& rotated_template : rotations) {
 
-                cv::Mat result;
-                //Methods available for template matching: cv::TM_CCOEFF, cv::TM_CCOEFF_NORMED, cv::TM_CCORR, cv::TM_CCORR_NORMED, cv::TM_SQDIFF, cv::TM_SQDIFF_NORMED
-                cv::matchTemplate(img, template_img, result, cv::TM_CCOEFF_NORMED);
+                std::vector<cv::Mat> rotations = rotate_template(template_img, 10);
+                for (const cv::Mat& rotated_template : rotations) {
 
-                std::vector<DetectedCoin> good_matches = get_positions_and_values_above_threshold(result, 0.7, template_img.cols, coins_classes[i]);
+                    cv::Mat result;
+                    //Methods available for template matching: cv::TM_CCOEFF, cv::TM_CCOEFF_NORMED, cv::TM_CCORR, cv::TM_CCORR_NORMED, cv::TM_SQDIFF, cv::TM_SQDIFF_NORMED
+                    cv::matchTemplate(img, rotated_template, result, cv::TM_CCOEFF_NORMED);
 
-                for (const auto& match : good_matches) {
+                    std::vector<DetectedCoin> good_matches = get_positions_and_values_above_threshold(result, 0.6, template_img.cols, coins_classes[i]);
 
-                    // check if it has been already found
-                    if (!add_near_point(match, positions_found, match.radius)) {
-                        for(const auto& d : positions_found) {
-                            std::cout << "current point: " << d.center << " with confidence: " << d.confidence << std::endl;
-                        }
-                        std::cout << "Added " << coins_classes[i] << " at location: " << match.center << " with confidence: " << match.confidence << std::endl;
+                    for (const auto& match : good_matches) {
+
+                        // check if it has been already found
+                        if (!add_near_point(match, positions_found, match.radius)) {
+                            for(const auto& d : positions_found) {
+                                std::cout << "current point: " << d.center << " with confidence: " << d.confidence << std::endl;
+                            }
+                            std::cout << "Added " << coins_classes[i] << " at location: " << match.center << " with confidence: " << match.confidence << std::endl;
                     }
                 }
-                //}
+            }
             }
         }
 
