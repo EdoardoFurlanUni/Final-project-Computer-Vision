@@ -114,7 +114,7 @@ int main(int argc, const char* argv[])
         cv::Mat img_3ch;
         cv::cvtColor(img, img_3ch, cv::COLOR_GRAY2BGR);
 
-        std::vector<std::tuple<cv::Point, float, float, std::string>> positions_found;     // center, radius, confidence, class
+        std::vector<DetectedCoin> positions_found;     // center, radius, confidence, class
 
         for (size_t i = 0; i < coins_classes.size(); i++) {
             for (const cv::Mat& template_img : preprocessed_dataset_images[i]) {
@@ -126,25 +126,16 @@ int main(int argc, const char* argv[])
                 //Methods available for template matching: cv::TM_CCOEFF, cv::TM_CCOEFF_NORMED, cv::TM_CCORR, cv::TM_CCORR_NORMED, cv::TM_SQDIFF, cv::TM_SQDIFF_NORMED
                 cv::matchTemplate(img, template_img, result, cv::TM_CCOEFF_NORMED);
 
-                std::vector<std::tuple<cv::Point, float>> good_matches = get_positions_and_values_above_threshold(result, 0.7);
+                std::vector<DetectedCoin> good_matches = get_positions_and_values_above_threshold(result, 0.7, template_img.cols, coins_classes[i]);
 
                 for (const auto& match : good_matches) {
-                    cv::Point loc = std::get<0>(match);
-                    float val = std::get<1>(match);
-
-                    cv::Point center = cv::Point(loc.x + template_img.cols/2, loc.y + template_img.rows/2);
-                    float radius = template_img.rows/2;
-
-                    std::tuple<cv::Point, float, float, std::string> new_point = std::make_tuple(center, radius, val, coins_classes[i]);
 
                     // check if it has been already found
-                    if (!add_near_point(new_point, positions_found, radius)) {
+                    if (!add_near_point(match, positions_found, match.radius)) {
                         for(const auto& d : positions_found) {
-                            cv::Point p = std::get<0>(d);
-                            float v = std::get<2>(d);
-                            std::cout << "current point: " << p << " with confidence: " << v << std::endl;
+                            std::cout << "current point: " << d.center << " with confidence: " << d.confidence << std::endl;
                         }
-                        std::cout << "Added " << coins_classes[i] << " at location: " << loc << " with confidence: " << val << std::endl;
+                        std::cout << "Added " << coins_classes[i] << " at location: " << match.center << " with confidence: " << match.confidence << std::endl;
                     }
                 }
                 //}
@@ -153,13 +144,8 @@ int main(int argc, const char* argv[])
 
         // Draw all labels
         for (const auto& d : positions_found) {
-            cv::Point p = std::get<0>(d);
-            float r = std::get<1>(d);
-            float v = std::get<2>(d);
-            std::string lbl = std::get<3>(d);
-
-            cv::circle(img_3ch, p, r, cv::Scalar(0, 255, 0), 5);
-            cv::putText(img_3ch, lbl, cv::Point(p.x, p.y - 10), cv::FONT_HERSHEY_SIMPLEX, 3, cv::Scalar(0, 255, 0), 5);
+            cv::circle(img_3ch, d.center, d.radius, cv::Scalar(0, 255, 0), 5);
+            cv::putText(img_3ch, d.class_name, cv::Point(d.center.x, d.center.y - 10), cv::FONT_HERSHEY_SIMPLEX, 3, cv::Scalar(0, 255, 0), 5);
         }
 
         // Measure the time taken for template matching
