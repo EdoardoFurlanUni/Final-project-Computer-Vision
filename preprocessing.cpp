@@ -25,26 +25,40 @@ cv::Mat correct_illumination(cv::Mat I){
 }
 
 cv::Mat contrast_stretching(const cv::Mat& I, const std::vector<cv::Point2f>& points) {
-    cv::Mat stretched = cv::Mat::zeros(I.size(), I.type());
+    cv::Mat stretched;
+    I.convertTo(stretched, CV_32F);
+    //  = cv::Mat::zeros(I.size(), I.type());
+
+    cv::Mat previous_mask = cv::Mat::zeros(I.size(), CV_8U);
 
     for (int i = 1; i < points.size(); ++i) {
-        cv::Point2f A = points[i-1];
-        cv::Point2f B = points[i];
+        int x1 = cvRound(points[i-1].x);
+        int x2 = cvRound(points[i].x);
+        int y1 = cvRound(points[i-1].y);
+        int y2 = cvRound(points[i].y);
 
-        // Crea maschera per pixel nell'intervallo [A.x, B.x]
+        // maschera: pixel <= x2
         cv::Mat mask;
-        cv::inRange(I, cv::Scalar(A.x), cv::Scalar(B.x), mask);
+        cv::threshold(I, mask, x2, 255, cv::THRESH_BINARY_INV);
 
-        // Applica la trasformazione lineare solo ai pixel selezionati
-        for (int r = 0; r < I.rows; ++r) {
-            for (int c = 0; c < I.cols; ++c) {
-                if (mask.at<uchar>(r, c)) {
-                    float val = I.at<uchar>(r, c);
-                    float new_val = A.y + (val - A.x) * (B.y - A.y) / (B.x - A.x);
-                    stretched.at<uchar>(r, c) = cv::saturate_cast<uchar>(new_val);
-                }
-            }
-        }
+        // isoliamo l’intervallo (x1, x2]
+        cv::Mat regionMask;
+        cv::bitwise_xor(mask, previous_mask, regionMask); 
+
+        // trasformiamo i pixel di questa regione
+        cv::Mat I_region;
+        I.copyTo(I_region, regionMask);
+        I_region.convertTo(I_region, CV_32F);
+
+        // applica la trasformazione lineare
+        I_region = (I_region - x1) * ((y2 - y1) / static_cast<float>(x2 - x1)) + y1;
+        I_region.convertTo(I_region, CV_8U);
+
+        // scrivi nella destinazione
+        I_region.copyTo(stretched, regionMask);
+
+        // aggiorna previous_mask
+        previous_mask = mask.clone();
     }
 
     return stretched;
@@ -85,12 +99,13 @@ std::vector<cv::Mat> preprocess_images(const std::vector<cv::Mat>& images, const
     processed_images.reserve(images.size());
 
     for (const cv::Mat& img : images) {
-        cv::Mat new_image = img;
+        cv::Mat new_image;
+        new_image = img.clone();
 
-        // new_image = correct_illumination(new_image);
-        new_image = contrast_stretching(img, points);
-
-        cv::GaussianBlur(new_image, new_image, cv::Size(s, s), sigma);
+        new_image = contrast_stretching(new_image, points);
+        cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(3, cv::Size(15, 15));
+        clahe->apply(new_image, new_image);
+        cv::GaussianBlur(new_image, new_image, cv::Size(3,3), 1.0);
 
         processed_images.push_back(new_image);
     }
@@ -102,12 +117,13 @@ std::vector<cv::Mat> preprocess_images_test(const std::vector<cv::Mat>& images, 
     processed_images.reserve(images.size());
 
     for (const cv::Mat& img : images) {
-        cv::Mat new_image = img;
+        cv::Mat new_image;
+        new_image = img.clone();
 
         new_image = contrast_stretching(new_image, points);
-        // new_image = correct_illumination(new_image);
-        
-        cv::GaussianBlur(new_image, new_image, cv::Size(s, s), sigma);
+        cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(3, cv::Size(15, 15));
+        clahe->apply(new_image, new_image);
+        cv::GaussianBlur(new_image, new_image, cv::Size(3,3), 1.0);
 
         processed_images.push_back(new_image);
     }

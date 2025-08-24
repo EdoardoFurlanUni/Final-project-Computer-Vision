@@ -119,14 +119,12 @@ int main(int argc, const char* argv[])
         for (size_t i = 0; i < coins_classes.size(); i++) {
             for (const cv::Mat& template_img : preprocessed_dataset_images[i]) {
                 
-                // search for the best matches (at least > 0.95) among all the rotations of the template
                 //std::vector<cv::Mat> rotations = rotate_template(template_img, 1);
                 //for (const cv::Mat& rotated_template : rotations) {
 
                 cv::Mat result;
                 //Methods available for template matching: cv::TM_CCOEFF, cv::TM_CCOEFF_NORMED, cv::TM_CCORR, cv::TM_CCORR_NORMED, cv::TM_SQDIFF, cv::TM_SQDIFF_NORMED
                 cv::matchTemplate(img, template_img, result, cv::TM_CCOEFF_NORMED);
-                //cv::normalize( result, result, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
 
                 std::vector<std::tuple<cv::Point, float>> good_matches = get_positions_and_values_above_threshold(result, 0.7);
 

@@ -43,13 +43,13 @@ std::vector<cv::Mat> load_images_from_folder(const std::string& folders);
 cv::Mat correct_illumination(cv::Mat I);
 
 /**
- * @brief Apply the transformation T(r) = {where x1 < r < x2 then r/(x2-x1)*(r-x1)}
+ * @brief Apply the transformation T(r) = {where x1 < r < x2 then r * (y2-y1)/(x2-x1)}
  * 
  * @param I gray scale image
- * @param points points of the intersections of the piece wise linear transformation
+ * @param points points of the intersections of the piece wise linear transformation (0,0) (100,100)... 
  * 
  * @return The resulting image after the transformation
-**/
+ */
 cv::Mat contrast_stretching(const cv::Mat& I, const std::vector<cv::Point2f>& points);
 
 /**
@@ -60,7 +60,7 @@ cv::Mat contrast_stretching(const cv::Mat& I, const std::vector<cv::Point2f>& po
  * @param name name of the window
  * 
  * @return The displayed histogram
-**/
+*/
 cv::Mat display_hist(cv::Mat I, int bins, std::string name);
 
 /**
