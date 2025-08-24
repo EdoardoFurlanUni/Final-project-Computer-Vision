@@ -39,9 +39,9 @@ int main(int argc, const char* argv[])
     std::vector<cv::Mat> test_images = load_images_from_folder(test_images_path);
 
     // ----- PREPROCESSING (dataset and test) -----
-    std::vector<cv::Point2f> points_contrast_stretching = {cv::Point2f(0,0), cv::Point2f(0.75*255, 255), cv::Point2f(255, 255)};
-    int gaussian_kernel_size = 5;
-    float gaussian_kernel_sigma = 1.5;
+    std::vector<cv::Point2f> points_contrast_stretching = {cv::Point2f(0,0), cv::Point2f(0.9*255, 255), cv::Point2f(255, 255)};
+    int gaussian_kernel_size = 3;
+    float gaussian_kernel_sigma = 1;
     
     // preprocess dataset images
     std::vector<std::vector<cv::Mat>> preprocessed_dataset_images;
