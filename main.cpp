@@ -3,21 +3,21 @@
 int main(int argc, const char* argv[])
 {
     const std::vector<std::string> coins_classes = {
-        {"1_CENT", "2_CENT", "10_CENT", "20_CENT", "50_CENT", "1_EURO", "2_EURO"}
+        "1_CENT", "2_CENT", "10_CENT", "20_CENT", "50_CENT", "1_EURO", "2_EURO"
     };
 
     const std::vector<std::string> dataset_images_paths= {
-        {"../template/images/1_CENT", "../template/images/2_CENT", "../template/images/10_CENT", "../template/images/20_CENT", "../template/images/50_CENT", "../template/images/1_EURO", "../template/images/2_EURO"}
+        "../template/images/1_CENT", "../template/images/2_CENT", "../template/images/10_CENT", "../template/images/20_CENT", "../template/images/50_CENT", "../template/images/1_EURO", "../template/images/2_EURO"
     };
     const std::vector<std::string> dataset_labels_paths= {
-        {"../template/labels/1_CENT", "../template/labels/2_CENT", "../template/labels/10_CENT", "../template/labels/20_CENT", "../template/labels/50_CENT", "../template/labels/1_EURO", "../template/labels/2_EURO"}
+        "../template/labels/1_CENT", "../template/labels/2_CENT", "../template/labels/10_CENT", "../template/labels/20_CENT", "../template/labels/50_CENT", "../template/labels/1_EURO", "../template/labels/2_EURO"
     };
 
     const std::string test_images_path = "../test/images/";
     const std::string test_labels_path = "../test/labels/";
 
     const std::vector<std::string> test_videos_path = {
-        {"../test/videos/", "../test/videos/video1_frame/images", "../test/videos/video2_frame/images"}
+        "../test/videos/", "../test/videos/video1_frame/images", "../test/videos/video2_frame/images"
     };
 
 
@@ -39,33 +39,43 @@ int main(int argc, const char* argv[])
     std::vector<cv::Mat> test_images = load_images_from_folder(test_images_path);
 
     // ----- PREPROCESSING (dataset and test) -----
+    const float downsampling_factor = 0.5;
+    const int cut_margin = 50;
     std::vector<cv::Point2f> points_contrast_stretching = {cv::Point2f(0,0), cv::Point2f(0.9*255, 255), cv::Point2f(255, 255)};
     int gaussian_kernel_size = 3;
     float gaussian_kernel_sigma = 1;
     
-    // cut and preprocess dataset images
+    // downsample and preprocess dataset images
     std::vector<std::vector<cv::Rect>> cuts_dataset_images;
     std::vector<std::vector<cv::Mat>> preprocessed_dataset_images;
     preprocessed_dataset_images.reserve(dataset_images.size());
-    for (const auto& imgs_in_folder : dataset_images) {
+    for (auto& imgs_in_folder : dataset_images) {
 
-        std::vector<cv::Rect> cuts = get_bbox_containing_coins(imgs_in_folder, 50);
-        std::vector<cv::Mat> cut_imgs_in_folder = cut_images(imgs_in_folder, cuts);
+        // downsample
+        for (cv::Mat& image : imgs_in_folder) {
+            cv::resize(image, image, cv::Size(), downsampling_factor, downsampling_factor);
+        }
 
-        std::vector<cv::Mat> prep_imgs_in_folder = preprocess_images(cut_imgs_in_folder, points_contrast_stretching, gaussian_kernel_size, gaussian_kernel_sigma);
+        // preprocess
+        std::vector<cv::Mat> prep_imgs_in_folder = preprocess_images(imgs_in_folder, points_contrast_stretching, gaussian_kernel_size, gaussian_kernel_sigma);
+    
         preprocessed_dataset_images.push_back(prep_imgs_in_folder);
     }
-    // to show preprocessed images
-    for (const auto& imgs_in_folder : preprocessed_dataset_images) {
-        for (const cv::Mat& img : imgs_in_folder) {
-            cv::imshow("Preprocessed Image", img);
-            cv::waitKey(0);
-        }
-    }
+    // // to show preprocessed images
+    // for (const auto& imgs_in_folder : preprocessed_dataset_images) {
+    //     for (const cv::Mat& img : imgs_in_folder) {
+    //         cv::imshow("Preprocessed Image", img);
+    //         cv::waitKey(0);
+    //     }
+    // }
 
-    // cut and preprocess test images
-    std::vector<cv::Rect> cuts_test_images = get_bbox_containing_coins(test_images, 50);
-    std::vector<cv::Mat> preprocessed_test_images = preprocess_images_test(cut_images(test_images, cuts_test_images), points_contrast_stretching, gaussian_kernel_size, gaussian_kernel_sigma);
+    // cut, downsample and preprocess test images
+    std::vector<cv::Rect> bbox_test_images = get_bbox_containing_coins(test_images, cut_margin);
+    std::vector<cv::Mat> cut_test_images = cut_images(test_images, bbox_test_images);
+    for (cv::Mat& image : cut_test_images) {
+        cv::resize(image, image, cv::Size(), downsampling_factor, downsampling_factor);
+    }
+    std::vector<cv::Mat> preprocessed_test_images = preprocess_images_test(cut_test_images, points_contrast_stretching, gaussian_kernel_size, gaussian_kernel_sigma);
 
     // ----- HOUGH CIRCLES (dataset and test) -----
     /* for (const auto& imgs_in_folder : preprocessed_dataset_images) {
@@ -149,8 +159,8 @@ int main(int argc, const char* argv[])
 
         // Draw all labels
         for (const auto& d : positions_found) {
-            cv::circle(img_3ch, d.center, d.radius, cv::Scalar(0, 255, 0), 5);
-            cv::putText(img_3ch, d.class_name, cv::Point(d.center.x, d.center.y - 10), cv::FONT_HERSHEY_SIMPLEX, 3, cv::Scalar(0, 255, 0), 5);
+            cv::circle(img_3ch, d.center, d.radius, cv::Scalar(0, 255, 0), 2);
+            cv::putText(img_3ch, d.class_name, cv::Point(d.center.x, d.center.y - 30), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 255, 0), 2);
         }
 
         // Measure the time taken for template matching

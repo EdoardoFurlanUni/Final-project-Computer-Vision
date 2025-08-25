@@ -3,9 +3,6 @@
 std::vector<cv::Mat> images;
 int slider = 2;
 int maxSlider = 100;
-// int tileGridSize = 8;
-// int maxTileGridSize = 30;
-
 
 void on_trackbar(int pos, void* userdata) {
     std::vector<cv::Mat> concatenated_images;
@@ -64,17 +61,57 @@ int main(int argc, const char* argv[]) {
     // Cut images
     std::vector<cv::Rect> cuts = get_bbox_containing_coins(images, 50);
     images = cut_images(images, cuts);
-    
+
+    // downsample images
+    const float downsampling_factor = 0.5;
+    for (cv::Mat& image : images) {
+        cv::resize(image, image, cv::Size(), downsampling_factor, downsampling_factor);
+    }
+
     // Create trackbars
     cv::createTrackbar("slider", "process", NULL, maxSlider, on_trackbar);
-
-    // set initial position
-    // cv::setTrackbarPos("slider", "process", slider);
 
     // Initial call to display image
     on_trackbar(0, 0);
 
     cv::waitKey(0);
+
+    // const std::vector<std::string> dataset_images_paths = {
+    //     "../dataset/images/1_CENT", "../dataset/images/2_CENT", "../dataset/images/10_CENT", "../dataset/images/20_CENT", "../dataset/images/50_CENT", "../dataset/images/1_EURO", "../dataset/images/2_EURO"
+    // };
+
+    // for (int i = 0; i < dataset_images_paths.size(); i++) {
+    //     std::string folder = dataset_images_paths[i];
+    //     std::vector<std::string> file_paths = get_file_names(folder);
+
+    //     for (const std::string& file : file_paths) {
+    //         cv::Mat img = cv::imread(file);
+    //         if (!img.empty()) {
+    //             // display size
+    //             std::cout << "Image " << file << ": " << img.size() << std::endl;
+
+    //             // se la dimensione non è 3024 x 4032, ridimensiona
+    //             if (img.size() != cv::Size(3024, 4032)) {
+    //                 cv::resize(img, img, cv::Size(3024, 4032));
+    //                 std::cout << "Resized image size: " << img.size() << std::endl;
+    //                 // salva l'immagine
+    //                 cv::imwrite(file, img);
+    //             }
+
+    //         } else {
+    //             std::cerr << "Impossible to read: " << file << std::endl;
+    //         }
+    //     }
+    // }
+
+    // const std::string test_images_path = "../test/images/";
+
+    // std::vector<cv::Mat> test_images = load_images_from_folder(test_images_path);
+
+    // for (const auto& image : test_images) {
+    //     // display size
+    //     std::cout << "Image size: " << image.size() << std::endl;
+    // }
 
     return 0;
 }
