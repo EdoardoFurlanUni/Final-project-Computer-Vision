@@ -64,6 +64,26 @@ cv::Mat contrast_stretching(const cv::Mat& I, const std::vector<cv::Point2f>& po
 cv::Mat display_hist(cv::Mat I, int bins, std::string name);
 
 /**
+ * @brief Finds the bounding boxes containing the coins in the images
+ * 
+ * @param images vector of gray scale images
+ * @param margin margin to add to the bounding boxes
+ * 
+ * @return vector of bounding boxes
+ */
+std::vector<cv::Rect> get_bbox_containing_coins(const std::vector<cv::Mat>& images, const int margin);
+
+/**
+ * @brief Cuts the images according to the given bounding boxes
+ * 
+ * @param images vector of gray scale images
+ * @param cuts vector of bounding boxes
+ * 
+ * @return vector of cut images
+ */
+std::vector<cv::Mat> cut_images(const std::vector<cv::Mat>& images, const std::vector<cv::Rect>& cuts);
+
+/**
  * @brief Applies preprocessing to a vector of images
  * 
  * @param images Vector of input images

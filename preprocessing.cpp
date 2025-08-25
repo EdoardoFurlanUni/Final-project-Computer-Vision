@@ -94,6 +94,48 @@ cv::Mat display_hist(cv::Mat I, int bins, std::string name) {
     return hist;
 }
 
+std::vector<cv::Rect> get_bbox_containing_coins(const std::vector<cv::Mat>& images, const int margin) {
+    std::vector<cv::Rect> bounding_boxes;
+    bounding_boxes.reserve(images.size());
+
+    for (const cv::Mat& img : images) {
+        cv::Mat new_image;
+        new_image = img.clone();
+
+        // apply canny
+        cv::GaussianBlur(new_image, new_image, cv::Size(5,5), 0);
+        cv::Canny(new_image, new_image, 20, 250, 3);
+
+        // find non zero points
+        std::vector<cv::Point> non_zero_points;
+        cv::findNonZero(new_image, non_zero_points);
+
+        // find bounding box containing non-zero points
+        cv::Rect bbox = cv::boundingRect(non_zero_points);
+
+        // add margin
+        bbox.x = std::max(bbox.x - margin, 0);
+        bbox.y = std::max(bbox.y - margin, 0);
+        bbox.width  = std::min(bbox.width  + 2*margin, img.cols - bbox.x);
+        bbox.height = std::min(bbox.height + 2*margin, img.rows - bbox.y);
+
+        bounding_boxes.push_back(bbox);
+    }
+
+    return bounding_boxes;
+}
+
+std::vector<cv::Mat> cut_images(const std::vector<cv::Mat>& images, const std::vector<cv::Rect>& cuts) {
+    std::vector<cv::Mat> cut_images;
+    cut_images.reserve(images.size());
+
+    for (size_t i = 0; i < images.size(); ++i) {
+        cut_images.push_back(images[i](cuts[i]).clone());
+    }
+
+    return cut_images;
+}
+
 std::vector<cv::Mat> preprocess_images(const std::vector<cv::Mat>& images, const std::vector<cv::Point2f>& points, int s, float sigma) {
     std::vector<cv::Mat> processed_images;
     processed_images.reserve(images.size());
