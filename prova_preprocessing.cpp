@@ -27,8 +27,13 @@ int main(int argc, const char* argv[])
 {    
     const std::vector<std::string> filenames = {"../template/images/10_CENT/IMG_22_temp.jpg", "../test/images/IMG_24.jpg"};
     for (const std::string& filename : filenames) {
-        image = cv::imread(filename, cv::IMREAD_GRAYSCALE);
+        cv::Mat gray_image;
+        gray_image = cv::imread(filename, cv::IMREAD_GRAYSCALE);
+        image = cv::imread(filename, cv::IMREAD_COLOR);
+
         processed_image = image.clone();
+        cv::cvtColor(image, image, cv::COLOR_BGR2GRAY);
+
 
         // std::vector<cv::Mat> rotated_images = rotate_template(image, 8);
         // cv::namedWindow("template", cv::WINDOW_KEEPRATIO);
@@ -37,11 +42,29 @@ int main(int argc, const char* argv[])
         //     cv::imshow("template", rotated_images[i]);
         //     cv::waitKey(0);
         // }
-
-        // processed_image = contrast_stretching(image, 0.8*255);
         cv::GaussianBlur(processed_image, processed_image, cv::Size(5,5), 1.5);
         processed_image = correct_illumination(processed_image);
+        processed_image = computeIlluminantInvariant(processed_image);
+        
+    
+        processed_image = processed_image * 255.0;
 
+        processed_image.convertTo(processed_image, CV_8U);
+        cv::cvtColor(processed_image, processed_image, cv::COLOR_BGR2GRAY);
+        
+        //print orocessed_image.type()
+        std::cout << "Processed image type: " << processed_image.type() << " (is CV_8U: " << (processed_image.type() == CV_8U) << ")" << std::endl;
+        //processed_image = contrast_stretching(processed_image, 0.99 * 255);
+    
+        cv::namedWindow("Alvarez", cv::WINDOW_AUTOSIZE);
+        cv::imshow("Alvarez", processed_image);
+        // convert processed_image to grayscale if it is not already
+        
+
+        //cv::waitKey(0);
+        cv::namedWindow("original", cv::WINDOW_AUTOSIZE);
+        cv::imshow("original", image);
+        cv::waitKey(0);
         cv::namedWindow("process", cv::WINDOW_KEEPRATIO);
 
         // // se vuoi plottare il kernel gaussiano
@@ -62,6 +85,7 @@ int main(int argc, const char* argv[])
         on_trackbar(0, 0);
 
         cv::waitKey(0);
+        
     }
 
     return 0;

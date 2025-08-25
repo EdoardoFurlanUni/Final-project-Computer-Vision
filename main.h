@@ -42,6 +42,9 @@ std::vector<cv::Mat> load_images_from_folder(const std::string& folders);
  */
 cv::Mat correct_illumination(cv::Mat I);
 
+cv::Mat computeIlluminantInvariant(const cv::Mat& img);
+
+
 /**
  * @brief Apply the transformation T(r) = {if r <= T then L/T *r else L}
  * 
