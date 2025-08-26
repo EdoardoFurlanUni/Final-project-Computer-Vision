@@ -67,7 +67,7 @@ std::vector<cv::Mat> rotate_template(const cv::Mat& templ, const int num_rotatio
     }
     return rotated_templates;
 }
-
+/*
 double estimateRotationAngle(const std::vector<cv::KeyPoint>& kp1, const std::vector<cv::KeyPoint>& kp2, const std::vector<cv::DMatch>& matches) {
     std::vector<double> angles;
     for (auto& m : matches) {
@@ -79,6 +79,27 @@ double estimateRotationAngle(const std::vector<cv::KeyPoint>& kp1, const std::ve
     for (auto& a : angles) sum += a;
     return sum / angles.size();
 }
+*/
+double estimateRotationAngle(const std::vector<cv::KeyPoint>& kp1,
+                             const std::vector<cv::KeyPoint>& kp2,
+                             const std::vector<cv::DMatch>& matches) {
+    std::vector<cv::Point2f> pts1, pts2;
+    for (auto& m : matches) {
+        pts1.push_back(kp1[m.queryIdx].pt);
+        pts2.push_back(kp2[m.trainIdx].pt);
+    }
+
+    if (pts1.size() < 2) return 0.0;
+
+    cv::Mat inliers;
+    cv::Mat M = cv::estimateAffinePartial2D(pts1, pts2, inliers);
+
+    if (M.empty()) return 0.0;
+
+    double angle = atan2(M.at<double>(1,0), M.at<double>(0,0)) * 180.0 / CV_PI;
+    return angle;
+}
+
 
 cv::Mat rotateImage(const cv::Mat& src, double angle) {
     cv::Point2f center(src.cols/2.0, src.rows/2.0);

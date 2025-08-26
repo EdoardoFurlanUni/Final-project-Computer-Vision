@@ -113,7 +113,8 @@ int main(int argc, const char* argv[])
     // ----- TEMPLATE MATCHING (test) -----
     cv::namedWindow("Template Matching", cv::WINDOW_KEEPRATIO);
 
-    cv::Ptr<cv::SIFT> sift = cv::SIFT::create(); 
+    //cv::Ptr<cv::SIFT> sift = cv::SIFT::create(); 
+    cv::Ptr<cv::ORB> orb = cv::ORB::create(500, 1.0f, 1);
 
     // Parallel structure: same indexing as coins_classes[i], preprocessed_dataset_images[i][j]
     std::vector<std::vector<std::vector<cv::KeyPoint>>> dataset_keypoints(coins_classes.size());
@@ -123,31 +124,31 @@ int main(int argc, const char* argv[])
         for (const cv::Mat& template_img : preprocessed_dataset_images[i]) {
             std::vector<cv::KeyPoint> kp;
             cv::Mat desc;
-            sift->detectAndCompute(template_img, cv::noArray(), kp, desc);
+            orb->detectAndCompute(template_img, cv::noArray(), kp, desc);
             dataset_keypoints[i].push_back(kp);
             dataset_descriptors[i].push_back(desc);
         }
     }
 
-    for (const cv::Mat& img :  preprocessed_test_images) {
+    for (const cv::Mat& img : preprocessed_test_images) {
         auto start = std::chrono::high_resolution_clock::now();
 
         // convert to BGR to draw colored bbox
         cv::Mat img_3ch;
         cv::cvtColor(img, img_3ch, cv::COLOR_GRAY2BGR);
 
-        //compute keypoints for the scene
+        // compute keypoints for the scene
         std::vector<DetectedCoin> positions_found;     // center, radius, confidence, class
         std::vector<cv::KeyPoint> kp_scene;
         cv::Mat desc_scene;
-        sift->detectAndCompute(img, cv::noArray(), kp_scene, desc_scene);
+        orb->detectAndCompute(img, cv::noArray(), kp_scene, desc_scene);
 
         if (kp_scene.empty()) {
             std::cout << "No features found in test image, skipping.\n";
             continue;
         }
 
-        cv::BFMatcher matcher(cv::NORM_L2);
+        cv::BFMatcher matcher(cv::NORM_HAMMING);
         for (size_t i = 0; i < coins_classes.size(); i++) {
 
             for (size_t j = 0; j < dataset_descriptors[i].size(); j++) {
@@ -155,19 +156,26 @@ int main(int argc, const char* argv[])
                 const auto& desc_template = dataset_descriptors[i][j];
                 if (desc_template.empty()) continue;
 
-                    // --- Match features ---
+                // --- Match features ---
                 std::vector<cv::DMatch> matches;
                 matcher.match(desc_template, desc_scene, matches);
 
                 if (matches.empty()) continue;
-                    // --- Estimate rotation angle ---
+
+                // --- Estimate rotation angle ---
                 double angle = estimateRotationAngle(kp_template, kp_scene, matches);
                 std::cout << "Estimated angle for " << coins_classes[i] 
-                        << " (template " << j << "): " 
-                        << angle << " deg" << std::endl;
+                          << " (template " << j << "): " 
+                          << angle << " deg" << std::endl;
 
                 // --- Rotate template accordingly ---
                 cv::Mat rotated_template = rotateImage(preprocessed_dataset_images[i][j], angle);
+                // show rotated template
+                /*
+                cv::namedWindow("Rotated Template - " + std::to_string(i) + "_" + std::to_string(j), cv::WINDOW_KEEPRATIO);
+                cv::imshow("Rotated Template - " + std::to_string(i) + "_" + std::to_string(j), rotated_template);
+                cv::waitKey(1);
+                */
 
                 // --- Template Matching ---
 
@@ -175,7 +183,7 @@ int main(int argc, const char* argv[])
                     //Methods available for template matching: cv::TM_CCOEFF, cv::TM_CCOEFF_NORMED, cv::TM_CCORR, cv::TM_CCORR_NORMED, cv::TM_SQDIFF, cv::TM_SQDIFF_NORMED
                     cv::matchTemplate(img, rotated_template, result, cv::TM_CCOEFF_NORMED);
                     
-                    std::vector<DetectedCoin> good_matches = get_positions_and_values_above_threshold(result, 0.45, rotated_template.cols, coins_classes[i]);
+                    std::vector<DetectedCoin> good_matches = get_positions_and_values_above_threshold(result, 0.5, rotated_template.cols, coins_classes[i]);
 
                     for (const auto& match : good_matches) {
 
