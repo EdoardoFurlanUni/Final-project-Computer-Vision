@@ -110,7 +110,7 @@ int main(int argc, const char* argv[])
         cv::imshow("Hough Circles test", img);
         cv::waitKey(0);*/
     //}
-    // ----- TEMPLATE MATCHING (test) -----
+    // ----- SIFT + TEMPLATE MATCHING (test) -----
     cv::namedWindow("Template Matching", cv::WINDOW_KEEPRATIO);
 
     cv::Ptr<cv::SIFT> sift = cv::SIFT::create(); 
@@ -151,43 +151,62 @@ int main(int argc, const char* argv[])
         for (size_t i = 0; i < coins_classes.size(); i++) {
 
             for (size_t j = 0; j < dataset_descriptors[i].size(); j++) {
-                const auto& kp_template = dataset_keypoints[i][j];
-                const auto& desc_template = dataset_descriptors[i][j];
-                if (desc_template.empty()) continue;
+            const auto& kp_template = dataset_keypoints[i][j];
+            const auto& desc_template = dataset_descriptors[i][j];
+            if (desc_template.empty()) continue;
 
-                    // --- Match features ---
-                std::vector<cv::DMatch> matches;
-                matcher.match(desc_template, desc_scene, matches);
+            // --- Match features ---
+            std::vector<cv::DMatch> matches;
+            matcher.match(desc_template, desc_scene, matches);
 
-                if (matches.empty()) continue;
-                    // --- Estimate rotation angle ---
-                double angle = estimateRotationAngle(kp_template, kp_scene, matches);
-                std::cout << "Estimated angle for " << coins_classes[i] 
-                        << " (template " << j << "): " 
-                        << angle << " deg" << std::endl;
+            if (matches.empty()) continue;
 
-                // --- Rotate template accordingly ---
-                cv::Mat rotated_template = rotateImage(preprocessed_dataset_images[i][j], angle);
+            // --- Compute SIFT-based confidence ---
+            double sift_confidence = computeSIFTConfidence(kp_template, kp_scene, matches);
+            std::cout << "SIFT confidence for " << coins_classes[i] 
+                  << " (template " << j << "): " 
+                  << sift_confidence << std::endl;
 
-                // --- Template Matching ---
+            // --- Estimate rotation angle ---
+            double angle = estimateRotationAngle(kp_template, kp_scene, matches);
+            std::cout << "Estimated angle for " << coins_classes[i] 
+                  << " (template " << j << "): " 
+                  << angle << " deg" << std::endl;
 
-                    cv::Mat result;
-                    //Methods available for template matching: cv::TM_CCOEFF, cv::TM_CCOEFF_NORMED, cv::TM_CCORR, cv::TM_CCORR_NORMED, cv::TM_SQDIFF, cv::TM_SQDIFF_NORMED
-                    cv::matchTemplate(img, rotated_template, result, cv::TM_CCOEFF_NORMED);
-                    
-                    std::vector<DetectedCoin> good_matches = get_positions_and_values_above_threshold(result, 0.45, rotated_template.cols, coins_classes[i]);
+            // --- Rotate template accordingly ---
+            cv::Mat rotated_template = rotateImage(preprocessed_dataset_images[i][j], angle);
 
-                    for (const auto& match : good_matches) {
+            // --- Template Matching ---
+            cv::Mat result;
+            cv::matchTemplate(img, rotated_template, result, cv::TM_CCOEFF_NORMED);
 
-                        // check if it has been already found
-                        if (!add_near_point(match, positions_found, match.radius)) {
-                            for(const auto& d : positions_found) {
-                                std::cout << "current point: " << d.center << " with confidence: " << d.confidence << std::endl;
-                            }
-                            std::cout << "Added " << coins_classes[i] << " at location: " << match.center << " with confidence: " << match.confidence << std::endl;
+            std::vector<DetectedCoin> template_matches = get_positions_and_values_above_threshold(result, 0.45, rotated_template.cols, coins_classes[i]);
+
+            for (auto& template_match : template_matches) {
+                // Check if SIFT and Template Matching classify the same
+                bool is_classified_same = false;
+                for (auto& sift_match : positions_found) {
+                    if (cv::norm(template_match.center - sift_match.center) < template_match.radius) {
+                        is_classified_same = true;
+
+                        // Combine SIFT confidence and Template Matching confidence
+                        double combined_conf = 0.5 * sift_match.confidence + 0.5 * template_match.confidence;
+
+                        // Update the match with the combined confidence
+                        sift_match.confidence = combined_conf;
+                        template_match.confidence = combined_conf;
+                        break;
                     }
+                }
+
+                // If not classified the same, add as a new match
+                if (!is_classified_same) {
+                    if (!add_near_point(template_match, positions_found, template_match.radius)) {
+                        std::cout << "Added " << coins_classes[i] << " at location: " << template_match.center 
+                                  << " with confidence: " << template_match.confidence << std::endl;
+                    }
+                }
             }
-            
             }
         }
         
@@ -215,4 +234,5 @@ int main(int argc, const char* argv[])
     
     return 0;
 }
+
 
