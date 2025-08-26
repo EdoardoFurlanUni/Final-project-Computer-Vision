@@ -31,6 +31,7 @@ std::vector<std::string> get_file_names(const std::string& folder);
  */
 std::vector<cv::Mat> load_images_from_folder(const std::string& folders);
 
+std::vector<cv::Mat> load_images_from_folder_colour(const std::string& folder);
 
 // ----- PREPROCESSING -----
 /**

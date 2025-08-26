@@ -37,6 +37,73 @@ int main(int argc, const char* argv[])
 
     // load images in test path
     std::vector<cv::Mat> test_images = load_images_from_folder(test_images_path);
+    std::vector<cv::Mat> test_images_colour = load_images_from_folder_colour(test_images_path);
+    // conver test_images_colour to HSV
+    std::vector<cv::Mat> test_images_HSV;
+    for (const cv::Mat& img : test_images_colour) {
+        cv::Mat img_HSV;
+        cv::cvtColor(img, img_HSV, cv::COLOR_BGR2HSV);
+        test_images_HSV.push_back(img_HSV);
+    }
+    // apply a threshold on the saturation
+    for (cv::Mat& img : test_images_HSV) {
+        cv::inRange(img, cv::Scalar(0, 40, 0), cv::Scalar(180, 255, 255), img);
+    }
+    //show the result of the threshold
+    /*
+    for (const cv::Mat& img : test_images_HSV) {
+        cv::imshow("Thresholded Image", img);
+        cv::waitKey(0);
+    }
+    */
+   //cv::imshow("Original Image", test_images_colour[0]);
+   //cv::imshow("Thresholded Image", test_images_HSV[0]);
+    // apply hugh circles 
+    for (cv::Mat& img : test_images_HSV) {
+        std::vector<cv::Vec3f> circles;
+        cv::Mat gray;
+        if (img.channels() == 3) {
+            cv::cvtColor(img, gray, cv::COLOR_BGR2GRAY);
+        } else {
+            gray = img.clone();
+        }
+
+        cv::GaussianBlur(gray, gray, cv::Size(9, 9), 2, 2);
+
+        cv::HoughCircles(gray, circles, cv::HOUGH_GRADIENT,
+                 1,            // dp
+                 110,           // minDist tra cerchi (in pixel)
+                 100, 30,      // param1, param2
+                 95, 210);     // minRadius, maxRadius
+        std::cout << "Found " << circles.size() << " circles in the image." << std::endl;
+        cv::Mat img_col;
+        cv::cvtColor(img, img_col, cv::COLOR_GRAY2BGR);
+        //sort the circles by radius
+        std::sort(circles.begin(), circles.end(), [](const cv::Vec3f& a, const cv::Vec3f& b) {
+            return a[2] > b[2];
+        });
+        // print radius of the circles
+        for (size_t i = 0; i < circles.size(); i++) {
+            std::cout << "Circle " << i << ": radius = " << circles[i][2] << std::endl;
+        }
+
+        
+        for( size_t i = 0; i < circles.size(); i++ )
+        {
+            cv::Vec3i c = circles[i];
+            cv::Point center = cv::Point(c[0], c[1]);
+            // circle center
+            cv::circle(img_col, center, 1, cv::Scalar(0,100,100), 3, cv::LINE_AA);
+            // circle outline
+            int radius = c[2];
+            cv::circle(img_col, center, radius, cv::Scalar(255,0,255), 3, cv::LINE_AA);
+        }
+        cv::namedWindow("Hough Circles");
+        cv::imshow("Hough Circles", img_col);
+        cv::waitKey(0);
+    }
+
+    
 
     // ----- PREPROCESSING (dataset and test) -----
     std::vector<cv::Point2f> points_contrast_stretching = {cv::Point2f(0,0), cv::Point2f(0.9*255, 255), cv::Point2f(255, 255)};
@@ -67,6 +134,11 @@ int main(int argc, const char* argv[])
     std::vector<cv::Rect> cuts_test_images = get_bbox_containing_coins(test_images, 50);
     std::vector<cv::Mat> preprocessed_test_images = preprocess_images_test(cut_images(test_images, cuts_test_images), points_contrast_stretching, gaussian_kernel_size, gaussian_kernel_sigma);
 
+    // segmentation of the test images
+    for (const cv::Mat& img : preprocessed_test_images) {
+        cv::imshow("Preprocessed Test Image", img);
+        cv::waitKey(0);
+    }
     // ----- HOUGH CIRCLES (dataset and test) -----
     /* for (const auto& imgs_in_folder : preprocessed_dataset_images) {
         for (const cv::Mat& img_1ch : imgs_in_folder) {
