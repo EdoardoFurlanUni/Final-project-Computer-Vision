@@ -67,3 +67,55 @@ std::vector<cv::Mat> rotate_template(const cv::Mat& templ, const int num_rotatio
     }
     return rotated_templates;
 }
+
+double estimateRotationAngle(const std::vector<cv::KeyPoint>& kp1, const std::vector<cv::KeyPoint>& kp2, const std::vector<cv::DMatch>& matches) {
+    std::vector<double> angles;
+    for (auto& m : matches) {
+        double angle = kp2[m.trainIdx].angle - kp1[m.queryIdx].angle;
+        angles.push_back(angle);
+    }
+    if (angles.empty()) return 0.0;
+    double sum = 0;
+    for (auto& a : angles) sum += a;
+    return sum / angles.size();
+}
+
+cv::Mat rotateImage(const cv::Mat& src, double angle) {
+    cv::Point2f center(src.cols/2.0, src.rows/2.0);
+    cv::Mat rot = cv::getRotationMatrix2D(center, angle, 1.0);
+    cv::Mat dst;
+    cv::warpAffine(src, dst, rot, src.size(), cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar(0,0,0));
+    return dst;
+}
+
+double computeSIFTConfidence(const std::vector<cv::KeyPoint>& kp_template, const std::vector<cv::KeyPoint>& kp_scene, const std::vector<cv::DMatch>& matches) {
+    if (matches.empty()) {
+        return 0.0;
+    }
+
+    // minimum distance
+    double min_dist = 1e9;
+    for (const auto& m : matches) {
+        if (m.distance < min_dist) min_dist = m.distance;
+    }
+
+    // threshold to consider a match as "good"
+    double threshold = std::max(2.0 * min_dist, 30.0);
+
+    double total_distance = 0.0;
+    int good_matches_count = 0;
+
+    for (const auto& match : matches) {
+        if (match.distance <= threshold) {
+            total_distance += match.distance;
+            good_matches_count++;
+        }
+    }
+
+    if (good_matches_count == 0) return 0.0;
+
+    double average_distance = total_distance / good_matches_count;
+    double confidence = 1.0 / (1.0 + average_distance); // Normalize to [0, 1]
+
+    return confidence;
+}

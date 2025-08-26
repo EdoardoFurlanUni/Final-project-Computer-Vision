@@ -151,4 +151,37 @@ bool add_near_point(const DetectedCoin& new_point, std::vector<DetectedCoin>& po
  */
 std::vector<cv::Mat> rotate_template(const cv::Mat& templ, const int num_rotations);
 
+/**
+ * @brief Estimates the rotation angle between two sets of keypoints using their matches
+ * 
+ * @param kp1 keypoints from the first image (template)
+ * @param kp2 keypoints from the second image (scene)
+ * @param matches matches between the two sets of keypoints
+ * 
+ * @return Estimated rotation angle in degrees
+ */
+double estimateRotationAngle(const std::vector<cv::KeyPoint>& kp1, const std::vector<cv::KeyPoint>& kp2, const std::vector<cv::DMatch>& matches);
+
+/**
+ * @brief Rotates an image by a given angle
+ * 
+ * @param src source image
+ * @param angle rotation angle in degrees
+ * 
+ * @return Rotated image
+ */ 
+
+cv::Mat rotateImage(const cv::Mat& src, double angle);
+
+/**
+ * @brief Computes a confidence score based on SIFT feature matches
+ * 
+ * @param matches vector of DMatch objects representing the matches
+ * @param kp_template keypoints from the template image
+ * @param kp_scene keypoints from the scene image
+ * 
+ * @return Confidence score between 0 and 1
+ */
+double computeSIFTConfidence(const std::vector<cv::KeyPoint>& kp_template, const std::vector<cv::KeyPoint>& kp_scene, const std::vector<cv::DMatch>& matches);
+
 #endif // MAIN_H
