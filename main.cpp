@@ -27,70 +27,58 @@ int main(int argc, const char* argv[])
 
     // ----- LOAD IMAGES -----
     // load images in dataset path
-    std::vector<std::vector<cv::Mat>> dataset_images;
-    dataset_images.reserve(dataset_images_paths.size());
+    std::vector<std::vector<cv::Mat>> dataset_images_gray;
+    dataset_images_gray.reserve(dataset_images_paths.size());
     for (const std::string& folder : dataset_images_paths) {
 
-        std::vector<cv::Mat> images_in_folder = load_images_from_folder(folder);
-        dataset_images.push_back(images_in_folder);
+        std::vector<cv::Mat> images_in_folder = load_images_from_folder(folder, cv::IMREAD_GRAYSCALE);
+        dataset_images_gray.push_back(images_in_folder);
     }
 
     // load images in test path
-    std::vector<cv::Mat> test_images = load_images_from_folder(test_images_path);
-    std::vector<cv::Mat> test_images_colour = load_images_from_folder_colour(test_images_path);
-    // conver test_images_colour to HSV
-    std::vector<cv::Mat> test_images_HSV;
-   
-    for (const cv::Mat& img : test_images_colour) {
-        // Convert to HSV
+    std::vector<cv::Mat> test_images_gray = load_images_from_folder(test_images_path, cv::IMREAD_GRAYSCALE);
+    std::vector<cv::Mat> test_images_colour = load_images_from_folder(test_images_path, cv::IMREAD_COLOR);
+
+    // compute circles locations and split gray-scale test images containig coins
+    std::vector<std::vector<cv::Vec3f>> circles_positions;
+    std::vector<std::vector<cv::Mat>> test_images_coins;
+    test_images_coins.reserve(test_images_gray.size());
+
+    for (size_t i = 0; i < test_images_gray.size(); i++) {
         cv::Mat img_HSV;
-        cv::cvtColor(img, img_HSV, cv::COLOR_BGR2HSV);
+        cv::cvtColor(test_images_colour[i], img_HSV, cv::COLOR_BGR2HSV);
 
-        // Apply a threshold on the saturation
-        cv::Mat mask;
-        cv::inRange(img_HSV, cv::Scalar(0, 40, 0), cv::Scalar(180, 255, 255), mask);
+        std::vector<cv::Vec3f> circles = get_circles_positions(img_HSV);
+        circles_positions.push_back(circles);
 
-        // Convert to grayscale and blur
-        cv::Mat gray;
-        if (mask.channels() == 3) {
-            cv::cvtColor(mask, gray, cv::COLOR_BGR2GRAY);
-        } else {
-            gray = mask.clone();
+        std::vector<cv::Mat> coin_images = split_image_by_coins(test_images_gray[i], circles, 25); // 25 is the margin to add
+        test_images_coins.push_back(coin_images);
+
+        for (const auto& coin : coin_images) {
+            cv::namedWindow("Coin", cv::WINDOW_KEEPRATIO);
+            cv::imshow("Coin", coin);
+            cv::waitKey(0);
         }
-        cv::GaussianBlur(gray, gray, cv::Size(9, 9), 2, 2);
-
-        // Find circles using Hough Transform
-        std::vector<cv::Vec3f> circles;
-        cv::HoughCircles(gray, circles, cv::HOUGH_GRADIENT,
-                        1,     // dp
-                        110,   // minDist
-                        100, 30, // param1, param2
-                        95, 210); // minRadius, maxRadius
 
         std::cout << "Found " << circles.size() << " circles in the image." << std::endl;
 
-        // Sort circles by radius in ascending order
-        std::sort(circles.begin(), circles.end(),
-                [](const cv::Vec3f& a, const cv::Vec3f& b) { return a[2] < b[2]; });
-
         // Print radius of the circles
-        for (size_t i = 0; i < circles.size(); i++) {
-            std::cout << "Circle " << i << ": radius = " << circles[i][2] << std::endl;
+        for (size_t j = 0; j < circles.size(); j++) {
+            std::cout << "Circle " << j << ": radius = " << circles[j][2] << std::endl;
         }
 
-        // Draw circles on the original image
-        for (const auto& c : circles) {
-            cv::Point center(cvRound(c[0]), cvRound(c[1]));
-            int radius = cvRound(c[2]);
+        // // Draw circles on the original image
+        // for (const auto& c : circles) {
+        //     cv::Point center(cvRound(c[0]), cvRound(c[1]));
+        //     int radius = cvRound(c[2]);
 
-            cv::circle(img, center, 1, cv::Scalar(0, 100, 100), 3, cv::LINE_AA);
-            cv::circle(img, center, radius, cv::Scalar(255, 0, 255), 3, cv::LINE_AA);
-        }
-
-        cv::imshow("Hough Circles", img);
-        cv::waitKey(0);
+        //     cv::circle(test_images_colour[i], center, 1, cv::Scalar(0, 100, 100), 3, cv::LINE_AA);
+        //     cv::circle(test_images_colour[i], center, radius, cv::Scalar(255, 0, 255), 3, cv::LINE_AA);
+        // }
+        // cv::namedWindow("Hough Circles", cv::WINDOW_KEEPRATIO);
+        // cv::imshow("Hough Circles", test_images_colour[i]);
+        // cv::waitKey(0);
     }
-
 
     // ----- PREPROCESSING (dataset and test) -----
     std::vector<cv::Point2f> points_contrast_stretching = {cv::Point2f(0,0), cv::Point2f(0.9*255, 255), cv::Point2f(255, 255)};
@@ -100,8 +88,8 @@ int main(int argc, const char* argv[])
     // cut and preprocess dataset images
     std::vector<std::vector<cv::Rect>> cuts_dataset_images;
     std::vector<std::vector<cv::Mat>> preprocessed_dataset_images;
-    preprocessed_dataset_images.reserve(dataset_images.size());
-    for (const auto& imgs_in_folder : dataset_images) {
+    preprocessed_dataset_images.reserve(dataset_images_gray.size());
+    for (const auto& imgs_in_folder : dataset_images_gray) {
 
         std::vector<cv::Rect> cuts = get_bbox_containing_coins(imgs_in_folder, 50);
         std::vector<cv::Mat> cut_imgs_in_folder = cut_images(imgs_in_folder, cuts);
@@ -118,8 +106,8 @@ int main(int argc, const char* argv[])
     }
 
     // cut and preprocess test images
-    std::vector<cv::Rect> cuts_test_images = get_bbox_containing_coins(test_images, 50);
-    std::vector<cv::Mat> preprocessed_test_images = preprocess_images_test(cut_images(test_images, cuts_test_images), points_contrast_stretching, gaussian_kernel_size, gaussian_kernel_sigma);
+    std::vector<cv::Rect> cuts_test_images = get_bbox_containing_coins(test_images_gray, 50);
+    std::vector<cv::Mat> preprocessed_test_images = preprocess_images_test(cut_images(test_images_gray, cuts_test_images), points_contrast_stretching, gaussian_kernel_size, gaussian_kernel_sigma);
 
     // segmentation of the test images
     for (const cv::Mat& img : preprocessed_test_images) {

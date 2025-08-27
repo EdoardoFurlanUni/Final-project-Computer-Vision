@@ -16,30 +16,13 @@ std::vector<std::string> get_file_names(const std::string& folder) {
     return filenames;
 }
 
-std::vector<cv::Mat> load_images_from_folder(const std::string& folder) {
+std::vector<cv::Mat> load_images_from_folder(const std::string& folder, int flags) {
     std::vector<cv::Mat> images_in_folder;
 
     std::vector<std::string> file_paths = get_file_names(folder);
 
     for (const std::string& path : file_paths) {
-        cv::Mat img = cv::imread(path, cv::IMREAD_GRAYSCALE);
-        if (!img.empty()) {
-            images_in_folder.push_back(img);
-        } else {
-            std::cerr << "Impossible to read: " << path << std::endl;
-        }
-    }
-
-    return images_in_folder;
-}
-
-std::vector<cv::Mat> load_images_from_folder_colour(const std::string& folder) {
-    std::vector<cv::Mat> images_in_folder;
-
-    std::vector<std::string> file_paths = get_file_names(folder);
-
-    for (const std::string& path : file_paths) {
-        cv::Mat img = cv::imread(path, cv::IMREAD_COLOR);
+        cv::Mat img = cv::imread(path, flags);
         if (!img.empty()) {
             images_in_folder.push_back(img);
         } else {

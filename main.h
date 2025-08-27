@@ -25,13 +25,12 @@ std::vector<std::string> get_file_names(const std::string& folder);
 /**
  * @brief Loads images from a folder
  * 
- * @param folders folder containing images
+ * @param folder folder containing images
+ * @param flags flags for cv::imread (cv::IMREAD_GRAYSCALE, cv::IMREAD_COLOR_BGR, etc.)
  * 
  * @return Vector of images
  */
-std::vector<cv::Mat> load_images_from_folder(const std::string& folders);
-
-std::vector<cv::Mat> load_images_from_folder_colour(const std::string& folder);
+std::vector<cv::Mat> load_images_from_folder(const std::string& folder, int flags);
 
 // ----- PREPROCESSING -----
 /**
@@ -117,6 +116,26 @@ struct DetectedCoin {
     float confidence;   // Confidenza della rilevazione
     std::string class_name; // Classe dell'oggetto
 };
+
+/**
+ * @brief Finds the positions of circles in the image
+*
+ * @param I input image in HSV format
+ * 
+ * @return vector of circle positions (x, y, radius)
+ */
+std::vector<cv::Vec3f> get_circles_positions(const cv::Mat& I);
+
+/**
+ * @brief Splits the image into separate coin images based on detected circles
+ *
+ * @param I input image
+ * @param circles vector of detected circle positions (x, y, radius)
+ * @param margin margin to add around each coin image
+ *
+ * @return vector of coin images
+ */
+std::vector<cv::Mat> split_image_by_coins(const cv::Mat& I, const std::vector<cv::Vec3f>& circles, int margin);
 
 /**
  * @brief Finds all the non overlapping matches which have values above a certain threshold

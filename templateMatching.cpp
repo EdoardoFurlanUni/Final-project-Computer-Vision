@@ -1,5 +1,60 @@
 #include "main.h"
 
+std::vector<cv::Vec3f> get_circles_positions(const cv::Mat& I) {
+    std::vector<cv::Vec3f> circles;
+
+    // verify that I is in HSV format
+    if (I.empty() || I.type() != CV_8UC3) {
+        std::cerr << "Input image is empty or not in HSV format." << std::endl;
+        return circles;
+    }
+
+    // Apply a threshold on the saturation
+    cv::Mat mask;
+    cv::inRange(I, cv::Scalar(0, 40, 0), cv::Scalar(180, 255, 255), mask);
+
+    // Convert to grayscale and blur
+    cv::Mat gray;
+    if (mask.channels() == 3) {
+        cv::cvtColor(mask, gray, cv::COLOR_BGR2GRAY);
+    } else {
+        gray = mask.clone();
+    }
+    cv::GaussianBlur(gray, gray, cv::Size(9, 9), 2, 2);
+
+     // Find circles using Hough Transform
+    cv::HoughCircles(gray, circles, cv::HOUGH_GRADIENT,
+                    1,     // dp
+                    110,   // minDist
+                    100, 30, // param1, param2
+                    95, 210); // minRadius, maxRadius
+    
+    // Sort circles by radius in ascending order
+    std::sort(circles.begin(), circles.end(), [](const cv::Vec3f& a, const cv::Vec3f& b) { return a[2] < b[2]; });
+
+    return circles;
+}
+
+std::vector<cv::Mat> split_image_by_coins(const cv::Mat& I, const std::vector<cv::Vec3f>& circles, int margin) {
+    std::vector<cv::Mat> coin_images;
+    for (const auto& circle : circles) {
+
+        int x = static_cast<int>(circle[0]);
+        int y = static_cast<int>(circle[1]);
+        int r = static_cast<int>(circle[2]);
+
+        // Define the bounding box for the coin
+        int x_start = std::max(0, x - r - margin);
+        int y_start = std::max(0, y - r - margin);
+        int x_end = std::min(I.cols, x + r + margin);
+        int y_end = std::min(I.rows, y + r + margin);
+
+        cv::Rect roi(x_start, y_start, x_end - x_start, y_end - y_start);
+        coin_images.push_back(I(roi).clone());
+    }
+    return coin_images;
+}
+
 std::vector<DetectedCoin> get_positions_and_values_above_threshold(const cv::Mat& result, double threshold, double template_size, std::string label) {
     std::vector<DetectedCoin> positions_and_values;
     double radius = template_size / 2.0;
