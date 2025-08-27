@@ -5,8 +5,12 @@ std::vector<std::string> get_file_names(const std::string& folder) {
 
     try {
         for (const auto& entry : std::filesystem::directory_iterator(folder)) {
+            // verify that is an image
             if (entry.is_regular_file()) {
-                filenames.push_back(entry.path().string());
+                std::string extension = entry.path().extension().string();
+                if (extension == ".jpg" || extension == ".jpeg" || extension == ".png") {
+                    filenames.push_back(entry.path().string());
+                }
             }
         }
     } catch (const std::filesystem::filesystem_error& e) {

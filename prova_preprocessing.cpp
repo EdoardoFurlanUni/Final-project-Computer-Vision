@@ -103,9 +103,9 @@ int main(int argc, const char* argv[]) {
 
     // cv::waitKey(0);
 
-    std::vector<cv::Mat> concatenated_images;
-    int ref_width = 700;
-    int ref_height = 700;
+    // std::vector<cv::Mat> concatenated_images;
+    // int ref_width = 700;
+    // int ref_height = 700;
 
     for (cv::Mat image : images) {
         cv::Mat processed_image = image.clone();
@@ -125,15 +125,14 @@ int main(int argc, const char* argv[]) {
             std::cout << "Circle " << i << ": radius = " << circles[i][2] << std::endl;
         }
 
-        // // Draw circles on the original image
-        // cv::cvtColor(processed_image, processed_image, cv::COLOR_HSV2BGR);
-        // for (const auto& c : circles) {
-        //     cv::Point center(cvRound(c[0]), cvRound(c[1]));
-        //     int radius = cvRound(c[2]);
+        // Draw circles on the original image
+        for (const auto& c : circles) {
+            cv::Point center(cvRound(c[0]), cvRound(c[1]));
+            int radius = cvRound(c[2]);
 
-        //     cv::circle(processed_image, center, 1, cv::Scalar(0, 100, 100), 3, cv::LINE_AA);
-        //     cv::circle(processed_image, center, radius, cv::Scalar(255, 0, 255), 3, cv::LINE_AA);
-        // }
+            cv::circle(processed_image, center, 1, cv::Scalar(0, 100, 100), 3, cv::LINE_AA);
+            cv::circle(processed_image, center, radius, cv::Scalar(255, 0, 255), 3, cv::LINE_AA);
+        }
 
         std::vector<cv::Mat> coin_images = split_image_by_coins(processed_image, circles, 25);
 
