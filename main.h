@@ -150,6 +150,18 @@ std::vector<cv::Mat> split_image_by_coins(const cv::Mat& I, const std::vector<cv
 std::vector<DetectedCoin> get_positions_and_values_above_threshold(const cv::Mat& result, double threshold, double template_size, std::string label);
 
 /**
+ * @brief Finds the best match above a certain threshold
+ *
+ * @param result result matrix (output of matchTemplate)
+ * @param threshold threshold value
+ * @param template_size size of the template used for matching
+ * @param label class of the template
+ *
+ * @return The best match (center, radius, confidence, class) struct
+ */
+DetectedCoin get_best_match_above_threshold(const cv::Mat& result, double threshold, double template_size, std::string label);
+
+/**
  * @brief Adds the new_point to the list if there is no nearby point within min_distance. 
  * If the new_point has a higher confidence value, it replaces the existing point, otherwise it is discarded
  * 

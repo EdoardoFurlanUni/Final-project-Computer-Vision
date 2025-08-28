@@ -77,6 +77,26 @@ std::vector<DetectedCoin> get_positions_and_values_above_threshold(const cv::Mat
     return positions_and_values;
 }
 
+DetectedCoin get_best_match_above_threshold(const cv::Mat& result, double threshold, double template_size, std::string label) {
+    DetectedCoin best_match;
+    best_match.confidence = -1; // initialization
+    double radius = template_size / 2.0;
+
+    // get best result
+    double minVal, maxVal;
+    cv::Point minLoc, maxLoc;
+    cv::minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc);
+
+    if (maxVal >= threshold) {
+        best_match.center = maxLoc + cv::Point(radius, radius);
+        best_match.radius = radius;
+        best_match.class_name = label;
+        best_match.confidence = maxVal;
+    }
+
+    return best_match;
+}
+
 bool add_near_point(const DetectedCoin& new_point, std::vector<DetectedCoin>& points, double min_distance) {
     cv::Point target = new_point.center;
     float radius = new_point.radius;
