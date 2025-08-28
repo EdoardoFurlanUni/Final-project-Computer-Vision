@@ -110,11 +110,12 @@ int main(int argc, const char* argv[]) {
     for (cv::Mat image : images) {
         cv::Mat processed_image = image.clone();
         cv::cvtColor(processed_image, processed_image, cv::COLOR_BGR2HSV);
+        const float downsampling_factor = 1;
 
         // processa
         auto start = std::chrono::high_resolution_clock::now();
 
-        std::vector<cv::Vec3f> circles = get_circles_positions(processed_image);
+        std::vector<cv::Vec3f> circles = get_circles_positions(processed_image, downsampling_factor);
 
         cv::cvtColor(processed_image, processed_image, cv::COLOR_HSV2BGR);
 

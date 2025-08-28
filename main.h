@@ -121,10 +121,11 @@ struct DetectedCoin {
  * @brief Finds the positions of circles in the image
 *
  * @param I input image in HSV format
+ * @param downsampling_factor factor by which the image was downsampled
  * 
  * @return vector of circle positions (x, y, radius)
  */
-std::vector<cv::Vec3f> get_circles_positions(const cv::Mat& I);
+std::vector<cv::Vec3f> get_circles_positions(const cv::Mat& I, const float downsampling_factor);
 
 /**
  * @brief Splits the image into separate coin images based on detected circles

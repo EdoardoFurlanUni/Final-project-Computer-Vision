@@ -27,22 +27,35 @@ int main(int argc, const char* argv[])
 
 
     // ----- LOAD IMAGES -----
+    const float downsampling_factor = 0.75;
+
     // load images in dataset path
     std::vector<std::vector<cv::Mat>> dataset_images_gray;
     dataset_images_gray.reserve(dataset_images_paths.size());
     for (const std::string& folder : dataset_images_paths) {
 
         std::vector<cv::Mat> images_in_folder = load_images_from_folder(folder, cv::IMREAD_GRAYSCALE);
+        
+        // downsample
+        for (cv::Mat& image : images_in_folder) {
+            cv::resize(image, image, cv::Size(), downsampling_factor, downsampling_factor);
+        }
+
         dataset_images_gray.push_back(images_in_folder);
     }
 
     // load images in test path
     std::vector<cv::Mat> test_images_gray = load_images_from_folder(test_images_path, cv::IMREAD_GRAYSCALE);
+    for (cv::Mat& image : test_images_gray) {
+        cv::resize(image, image, cv::Size(), downsampling_factor, downsampling_factor);
+    }
     std::vector<cv::Mat> test_images_colour = load_images_from_folder(test_images_path, cv::IMREAD_COLOR);
-
+    for (cv::Mat& image : test_images_colour) {
+        cv::resize(image, image, cv::Size(), downsampling_factor, downsampling_factor);
+    }
 
     // ----- PREPROCESSING (dataset and test) -----
-    const int coin_image_margin = 25;
+    const int coin_image_margin = static_cast<int>(25*downsampling_factor);
     const std::vector<cv::Point2f> points_contrast_stretching = {cv::Point2f(0,0), cv::Point2f(0.9*255, 255), cv::Point2f(255, 255)};
     const int gaussian_kernel_size = 3;
     const float gaussian_kernel_sigma = 1;
@@ -74,7 +87,7 @@ int main(int argc, const char* argv[])
         cv::Mat img_HSV;
         cv::cvtColor(test_images_colour[i], img_HSV, cv::COLOR_BGR2HSV);
 
-        std::vector<cv::Vec3f> circles = get_circles_positions(img_HSV);
+        std::vector<cv::Vec3f> circles = get_circles_positions(img_HSV, downsampling_factor);
         circles_positions.push_back(circles);
 
         std::vector<cv::Mat> coin_images = split_image_by_coins(test_images_gray[i], circles, coin_image_margin);
@@ -96,8 +109,8 @@ int main(int argc, const char* argv[])
             cv::Point center(cvRound(circle[0]), cvRound(circle[1]));
             int radius = cvRound(circle[2]);
 
-            cv::circle(test_images_colour[i], center, radius, cv::Scalar(255, 0, 255), 3, cv::LINE_AA);
-            cv::putText(test_images_colour[i], std::to_string(j), center, cv::FONT_HERSHEY_SIMPLEX, 1.5, cv::Scalar(255, 0, 255), 3);
+            cv::circle(test_images_colour[i], center, radius, cv::Scalar(255, 0, 255), static_cast<int>(3*downsampling_factor), cv::LINE_AA);
+            cv::putText(test_images_colour[i], std::to_string(j), center, cv::FONT_HERSHEY_SIMPLEX, 1.5*downsampling_factor, cv::Scalar(255, 0, 255), static_cast<int>(3*downsampling_factor));
 
             // // Show circles on original image *****
             // cv::namedWindow("Hough Circles", cv::WINDOW_KEEPRATIO);
@@ -109,9 +122,9 @@ int main(int argc, const char* argv[])
             // cv::imshow("Coin", preprocessed_coin_images[j]);
             // cv::waitKey(0);
 
-            // Show size of coin image *****
-            cv::Size coin_size = preprocessed_coin_images[j].size();
-            std::cout << "Coin " << j << " size: " << coin_size.width << "x" << coin_size.height << std::endl;
+            // // Show size of coin image *****
+            // cv::Size coin_size = preprocessed_coin_images[j].size();
+            // std::cout << "Coin " << j << " size: " << coin_size.width << "x" << coin_size.height << std::endl;
         }
     }    
 
@@ -148,7 +161,7 @@ int main(int argc, const char* argv[])
                     }
 
                     // rotate template
-                    std::vector<cv::Mat> rotations = rotate_template(template_img, 10);
+                    std::vector<cv::Mat> rotations = rotate_template(template_img, 8);
                     for (const cv::Mat& rotated_template : rotations) {
 
                         cv::Mat result;
@@ -192,8 +205,8 @@ int main(int argc, const char* argv[])
 
         // Draw all labels
         for (const auto& d : coins_found) {
-            cv::circle(test_images_colour[i], d.center, d.radius, cv::Scalar(0, 255, 0), 5);
-            cv::putText(test_images_colour[i], d.class_name, cv::Point(d.center.x, d.center.y - 10), cv::FONT_HERSHEY_SIMPLEX, 2, cv::Scalar(0, 255, 0), 5);
+            cv::circle(test_images_colour[i], d.center, d.radius, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor), cv::LINE_AA);
+            cv::putText(test_images_colour[i], d.class_name, cv::Point(d.center.x, d.center.y - 10), cv::FONT_HERSHEY_SIMPLEX, 2*downsampling_factor, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor));
         }
 
         // Measure the time taken for template matching

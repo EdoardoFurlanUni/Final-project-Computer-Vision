@@ -1,6 +1,6 @@
 #include "main.h"
 
-std::vector<cv::Vec3f> get_circles_positions(const cv::Mat& I) {
+std::vector<cv::Vec3f> get_circles_positions(const cv::Mat& I, const float downsampling_factor) {
     std::vector<cv::Vec3f> circles;
 
     // verify that I is in HSV format
@@ -20,14 +20,19 @@ std::vector<cv::Vec3f> get_circles_positions(const cv::Mat& I) {
     } else {
         gray = mask.clone();
     }
-    cv::GaussianBlur(gray, gray, cv::Size(9, 9), 2, 2);
+    // define kernel size a 9 * downsampling factor and cast to the nearest odd value
+    int kernel_size = static_cast<int>(9 * downsampling_factor);
+    if (kernel_size % 2 == 0) {
+        kernel_size += 1;
+    }
+    cv::GaussianBlur(gray, gray, cv::Size(kernel_size, kernel_size), downsampling_factor*2, downsampling_factor*2);
 
      // Find circles using Hough Transform
     cv::HoughCircles(gray, circles, cv::HOUGH_GRADIENT,
                     1,     // dp
-                    110,   // minDist
+                    110*downsampling_factor,   // minDist
                     100, 30, // param1, param2
-                    95, 210); // minRadius, maxRadius
+                    95*downsampling_factor, 210*downsampling_factor); // minRadius, maxRadius
     
     // Sort circles by radius in ascending order
     std::sort(circles.begin(), circles.end(), [](const cv::Vec3f& a, const cv::Vec3f& b) { return a[2] < b[2]; });
