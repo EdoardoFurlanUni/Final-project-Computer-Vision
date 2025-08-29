@@ -89,11 +89,9 @@ std::vector<cv::Vec3f> get_circles_positions(const cv::Mat& I, const float downs
     // Combine both masks
     cv::bitwise_or(mask_lab, mask_hsv_refined, mask);
 
-    /*
-    //uncomment to see the final mask 
-    cv::namedWindow("Final Mask", cv::WINDOW_KEEPRATIO);
-    cv::imshow("Final Mask", mask);
-    */
+    // // uncomment to see the final mask *****
+    // cv::namedWindow("Final Mask", cv::WINDOW_KEEPRATIO);
+    // cv::imshow("Final Mask", mask);
 
     // Convert to grayscale and blur
     cv::Mat gray;

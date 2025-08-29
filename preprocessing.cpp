@@ -154,21 +154,3 @@ std::vector<cv::Mat> preprocess_images(const std::vector<cv::Mat>& images, const
 
     return processed_images;
 }
-std::vector<cv::Mat> preprocess_images_test(const std::vector<cv::Mat>& images, const std::vector<cv::Point2f>& points, int s, float sigma) {
-    std::vector<cv::Mat> processed_images;
-    processed_images.reserve(images.size());
-
-    for (const cv::Mat& img : images) {
-        cv::Mat new_image;
-        new_image = img.clone();
-
-        new_image = contrast_stretching(new_image, points);
-        cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(3, cv::Size(15, 15));
-        clahe->apply(new_image, new_image);
-        cv::GaussianBlur(new_image, new_image, cv::Size(s,s), sigma);
-
-        processed_images.push_back(new_image);
-    }
-
-    return processed_images;
-}

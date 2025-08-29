@@ -95,7 +95,7 @@ int main(int argc, const char* argv[])
         circles_positions.push_back(circles);
 
         std::vector<cv::Mat> coin_images = split_image_by_coins(test_images_gray[i], circles, coin_image_margin);
-        std::vector<cv::Mat> preprocessed_coin_images = preprocess_images_test(coin_images, points_contrast_stretching, gaussian_kernel_size, gaussian_kernel_sigma);
+        std::vector<cv::Mat> preprocessed_coin_images = preprocess_images(coin_images, points_contrast_stretching, gaussian_kernel_size, gaussian_kernel_sigma);
         preprocessed_test_images_coins.push_back(preprocessed_coin_images);
 
         // // Print number of circles found *****
@@ -134,6 +134,8 @@ int main(int argc, const char* argv[])
 
 
     // ----- TEMPLATE MATCHING (test) -----
+    std::vector<std::vector<DetectedCoin>> predicted_labels;
+
     cv::namedWindow("Template Matching", cv::WINDOW_KEEPRATIO);
 
     // loop over all test images
@@ -207,27 +209,35 @@ int main(int argc, const char* argv[])
             }
         }
 
-        // Draw all labels
-        for (const auto& d : coins_found) {
-            cv::circle(test_images_colour[i], d.center, d.radius, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor), cv::LINE_AA);
-            cv::putText(test_images_colour[i], d.class_name, cv::Point(d.center.x, d.center.y - 10), cv::FONT_HERSHEY_SIMPLEX, 2*downsampling_factor, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor));
-        }
+        // Store predicted labels for each image
+        predicted_labels.push_back(coins_found);
 
         // Measure the time taken for template matching
         auto end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> elapsed = end - start;
         std::cout << "Elapsed time: " << elapsed.count() << " seconds" << std::endl;
 
+        // Show all labels on the test image *****
+        for (const auto& d : coins_found) {
+            cv::circle(test_images_colour[i], d.center, d.radius, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor), cv::LINE_AA);
+            cv::putText(test_images_colour[i], d.class_name, cv::Point(d.center.x, d.center.y - 10), cv::FONT_HERSHEY_SIMPLEX, 2*downsampling_factor, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor));
+        }
         cv::imshow("Template Matching", test_images_colour[i]);
         std::cout << "number of matches: " << coins_found.size() << std::endl;
         cv::waitKey(0);
     }
 
-    // ----- HOUGH LINES (test) -----
-    // ----- COMPUTE OUTPUT (test) -----
 
     // ----- PERFORMANCE METRICS (test) -----
     
+    std::vector<std::vector<DetectedCoin>> ground_truth_labels = get_labels_from_folder(test_labels_path, downsampling_factor);
+
+    for (size_t i = 0; i < ground_truth_labels.size(); ++i) {
+        float mIoU = compute_mIoU(ground_truth_labels[i], predicted_labels[i]);
+        std::cout << "Mean IoU for image " << i << ": " << mIoU << std::endl;
+
+    }
+
     return 0;
 }
 

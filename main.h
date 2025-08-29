@@ -5,6 +5,7 @@
 #include <string>
 #include <tuple>
 #include <filesystem>
+#include <fstream>
 #include <chrono>   // time measurement
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
@@ -95,18 +96,6 @@ std::vector<cv::Mat> cut_images(const std::vector<cv::Mat>& images, const std::v
  */
 std::vector<cv::Mat> preprocess_images(const std::vector<cv::Mat>& images, const std::vector<cv::Point2f>& points, int s, float sigma);
 
-/**
- * @brief Applies preprocessing to the images in the test set, aims to avoid too bright areas
- * 
- * @param images Vector of input images
- * @param param points points of the intersections of the piece wise linear transformation
- * @param s size of the Gaussian kernel
- * @param sigma standard deviation for GaussianBlur
- * 
- * @return Vector of preprocessed images
- */
- std::vector<cv::Mat> preprocess_images_test(const std::vector<cv::Mat>& images, const std::vector<cv::Point2f>& points, int s, float sigma);
-
 
 // ----- TEMPLATE MATCHING -----
 
@@ -183,5 +172,38 @@ bool add_near_point(const DetectedCoin& new_point, std::vector<DetectedCoin>& po
  * @return Vector of rotated images
  */
 std::vector<cv::Mat> rotate_template(const cv::Mat& templ, const int num_rotations);
+
+
+// ----- PERFORMANCE METRICS -----
+
+/**
+ * @brief Gets the labels from a folder containing text files
+ *
+ * @param folder_path path to the folder containing the label files
+ * @param downsampling_factor factor by which the image was downsampled
+ *
+ * @return vector of vectors containing the detected coins for each image
+ */
+std::vector<std::vector<DetectedCoin>> get_labels_from_folder(const std::string& folder_path, const float downsampling_factor);
+
+/**
+ * @brief Computes the intersection over union between two detected coins
+ *
+ * @param label ground truth label
+ * @param prediction predicted label
+ *
+ * @return IoU value
+ */
+float intersection_over_union(const DetectedCoin label, const DetectedCoin prediction);
+
+/**
+ * @brief Computes the mean intersection over union between ground truth and predicted labels
+ *
+ * @param ground_truth_labels vector of ground truth labels
+ * @param predicted_labels vector of predicted labels
+ *
+ * @return mean IoU value
+ */
+float compute_mIoU(const std::vector<DetectedCoin> ground_truth_labels, const std::vector<DetectedCoin> predicted_labels);
 
 #endif // MAIN_H
