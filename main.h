@@ -7,6 +7,7 @@
 #include <filesystem>
 #include <fstream>
 #include <chrono>   // time measurement
+#include <iomanip> // used for std::setprecision
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/features2d.hpp>
@@ -187,23 +188,32 @@ std::vector<cv::Mat> rotate_template(const cv::Mat& templ, const int num_rotatio
 std::vector<std::vector<DetectedCoin>> get_labels_from_folder(const std::string& folder_path, const float downsampling_factor);
 
 /**
- * @brief Computes the intersection over union between two detected coins
+ * @brief Computes the intersection and union between two detected coins
  *
  * @param label ground truth label
  * @param prediction predicted label
  *
- * @return IoU value
+ * @return (intersection_area, union_area)
  */
-float intersection_over_union(const DetectedCoin label, const DetectedCoin prediction);
+cv::Point2f intersection_and_union(const DetectedCoin label, const DetectedCoin prediction);
 
 /**
- * @brief Computes the mean intersection over union between ground truth and predicted labels
+ * @brief Computes the mean intersection over union between ground truth and predicted labels and the accuracy score
  *
  * @param ground_truth_labels vector of ground truth labels
  * @param predicted_labels vector of predicted labels
  *
- * @return mean IoU value
+ * @return mean IoU value and accuracy
  */
-float compute_mIoU(const std::vector<DetectedCoin> ground_truth_labels, const std::vector<DetectedCoin> predicted_labels);
+cv::Point2f compute_mIoU_and_accuracy(const std::vector<DetectedCoin> ground_truth_labels, const std::vector<DetectedCoin> predicted_labels);
+
+/**
+ * @brief Sums the values of the coins
+ *
+ * @param coins vector of detected coins
+ *
+ * @return total value
+ */
+float sum_coins(const std::vector<DetectedCoin>& coins);
 
 #endif // MAIN_H

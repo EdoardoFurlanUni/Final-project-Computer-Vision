@@ -3,14 +3,14 @@
 int main(int argc, const char* argv[])
 {
     const std::vector<std::string> coins_classes = {
-        "1_CENT", "2_CENT", "10_CENT", "20_CENT", "50_CENT", "1_EURO", "2_EURO"
+        "EUR_001", "EUR_002", "EUR_010", "EUR_020", "EUR_050", "EUR_100", "EUR_200"
     };
 
     const std::vector<std::string> dataset_images_paths= {
-        "../template/images/1_CENT", "../template/images/2_CENT", "../template/images/10_CENT", "../template/images/20_CENT", "../template/images/50_CENT", "../template/images/1_EURO", "../template/images/2_EURO"
+        "../template/images/EUR_001", "../template/images/EUR_002", "../template/images/EUR_010", "../template/images/EUR_020", "../template/images/EUR_050", "../template/images/EUR_100", "../template/images/EUR_200"
     };
     const std::vector<std::string> dataset_labels_paths= {
-        "../dataset/labels/1_CENT", "../dataset/labels/2_CENT", "../dataset/labels/10_CENT", "../dataset/labels/20_CENT", "../dataset/labels/50_CENT", "../dataset/labels/1_EURO", "../dataset/labels/2_EURO"
+        "../dataset/labels/EUR_001", "../dataset/labels/EUR_002", "../dataset/labels/EUR_010", "../dataset/labels/EUR_020", "../dataset/labels/EUR_050", "../dataset/labels/EUR_100", "../dataset/labels/EUR_200"
     };
 
     const std::string test_images_path = "../test/images/";
@@ -113,10 +113,9 @@ int main(int argc, const char* argv[])
             cv::Point center(cvRound(circle[0]), cvRound(circle[1]));
             int radius = cvRound(circle[2]);
 
-            cv::circle(test_images_colour[i], center, radius, cv::Scalar(255, 0, 255), static_cast<int>(3*downsampling_factor), cv::LINE_AA);
-            cv::putText(test_images_colour[i], std::to_string(j), center, cv::FONT_HERSHEY_SIMPLEX, 1.5*downsampling_factor, cv::Scalar(255, 0, 255), static_cast<int>(3*downsampling_factor));
-
             // // Show circles on original image *****
+            // cv::circle(test_images_colour[i], center, radius, cv::Scalar(255, 0, 255), static_cast<int>(3*downsampling_factor), cv::LINE_AA);
+            // cv::putText(test_images_colour[i], std::to_string(j), cv::Point(center.x-radius/2, center.y+radius/2), cv::FONT_HERSHEY_SIMPLEX, 1.5*downsampling_factor, cv::Scalar(255, 0, 255), static_cast<int>(3*downsampling_factor));
             // cv::namedWindow("Hough Circles", cv::WINDOW_KEEPRATIO);
             // cv::imshow("Hough Circles", test_images_colour[i]);
             // cv::waitKey(0);
@@ -135,8 +134,6 @@ int main(int argc, const char* argv[])
 
     // ----- TEMPLATE MATCHING (test) -----
     std::vector<std::vector<DetectedCoin>> predicted_labels;
-
-    cv::namedWindow("Template Matching", cv::WINDOW_KEEPRATIO);
 
     // loop over all test images
     for (size_t i = 0; i < preprocessed_test_images_coins.size(); i++) {
@@ -217,14 +214,16 @@ int main(int argc, const char* argv[])
         std::chrono::duration<double> elapsed = end - start;
         std::cout << "Elapsed time: " << elapsed.count() << " seconds" << std::endl;
 
-        // Show all labels on the test image *****
-        for (const auto& d : coins_found) {
-            cv::circle(test_images_colour[i], d.center, d.radius, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor), cv::LINE_AA);
-            cv::putText(test_images_colour[i], d.class_name, cv::Point(d.center.x, d.center.y - 10), cv::FONT_HERSHEY_SIMPLEX, 2*downsampling_factor, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor));
-        }
-        cv::imshow("Template Matching", test_images_colour[i]);
         std::cout << "number of matches: " << coins_found.size() << std::endl;
-        cv::waitKey(0);
+
+        // // Show all labels on the test image *****
+        // for (const auto& d : coins_found) {
+        //     cv::circle(test_images_colour[i], d.center, d.radius, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor), cv::LINE_AA);
+        //     cv::putText(test_images_colour[i], d.class_name, cv::Point(d.center.x-d.radius/2, d.center.y+d.radius/2), cv::FONT_HERSHEY_SIMPLEX, 1.5*downsampling_factor, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor));
+        // }
+        // cv::namedWindow("Template Matching", cv::WINDOW_KEEPRATIO);
+        // cv::imshow("Template Matching", test_images_colour[i]);
+        // cv::waitKey(0);
     }
 
 
@@ -232,10 +231,33 @@ int main(int argc, const char* argv[])
     
     std::vector<std::vector<DetectedCoin>> ground_truth_labels = get_labels_from_folder(test_labels_path, downsampling_factor);
 
-    for (size_t i = 0; i < ground_truth_labels.size(); ++i) {
-        float mIoU = compute_mIoU(ground_truth_labels[i], predicted_labels[i]);
-        std::cout << "Mean IoU for image " << i << ": " << mIoU << std::endl;
+    for (size_t i = 0; i < test_images_colour.size(); i++) {
 
+        std::cout << "####### Results for image " << i << " #######" << std::endl;
+
+        cv::Point2f score = compute_mIoU_and_accuracy(ground_truth_labels[i], predicted_labels[i]);
+        std::cout << "mIoU: " << score.x << std::endl;
+        std::cout << "Accuracy: " << score.y * 100 << "%" << std::endl;
+
+        float true_sum = sum_coins(ground_truth_labels[i]);
+        float pred_sum = sum_coins(predicted_labels[i]);
+        float diff_sum = cv::abs(true_sum - pred_sum);
+        std::ostringstream out; // to not overwrite cout
+        out << std::fixed << std::setprecision(2);  // fix at 2 decimals
+        out << "True sum of coins: " << true_sum << " Predicted sum of coins: " << pred_sum << " Difference: " << diff_sum << std::endl;
+        std::cout << out.str(); 
+
+        for (const auto& coin: ground_truth_labels[i]) {
+            cv::circle(test_images_colour[i], coin.center, coin.radius, cv::Scalar(255, 255, 255), static_cast<int>(5*downsampling_factor), cv::LINE_AA);
+            cv::putText(test_images_colour[i], coin.class_name, cv::Point(coin.center.x-coin.radius/2, coin.center.y-coin.radius/2), cv::FONT_HERSHEY_SIMPLEX, 1.5*downsampling_factor, cv::Scalar(255, 255, 255), static_cast<int>(5*downsampling_factor));
+        }
+        for (const auto& coin: predicted_labels[i]) {
+            cv::circle(test_images_colour[i], coin.center, coin.radius, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor), cv::LINE_AA);
+            cv::putText(test_images_colour[i], coin.class_name, cv::Point(coin.center.x-coin.radius/2, coin.center.y+coin.radius/2), cv::FONT_HERSHEY_SIMPLEX, 1.5*downsampling_factor, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor));
+        }
+        cv::namedWindow("Results", cv::WINDOW_KEEPRATIO);
+        cv::imshow("Results", test_images_colour[i]);
+        cv::waitKey(0);
     }
 
     return 0;
