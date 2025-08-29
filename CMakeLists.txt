@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 # Trova OpenCV installato da Homebrew
 find_package(OpenCV REQUIRED)
 
-add_executable(opencv_test main.cpp fileManagement.cpp preprocessing.cpp templateMatching.cpp)
+add_executable(opencv_test main.cpp fileManagement.cpp preprocessing.cpp templateMatching.cpp svm.cpp)
 
 # Linka le librerie OpenCV
 target_link_libraries(opencv_test ${OpenCV_LIBS})

@@ -9,6 +9,9 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/features2d.hpp>
+#include <opencv2/ml.hpp>
+#include <opencv2/objdetect.hpp>
+
 
 using Detection = std::tuple<cv::Point, double>;
 
@@ -185,3 +188,26 @@ bool add_near_point(const DetectedCoin& new_point, std::vector<DetectedCoin>& po
 std::vector<cv::Mat> rotate_template(const cv::Mat& templ, const int num_rotations);
 
 #endif // MAIN_H
+
+// ----- SVM -----
+
+/**
+ * @brief Extracts HOG features from an image
+ * 
+ * @param image input image
+ * 
+ * @return HOG feature vector
+ */
+cv::Mat getHOGFeatures(const cv::Mat& image);
+
+/**
+ * @brief Prepares the dataset with HOG features and corresponding labels
+ * 
+ * @param images vector of input images
+ * @param features output matrix of features
+ * @param labels output matrix of labels
+ * @param label class label for the input images
+ */
+
+void datasetWithFeatures(std::vector<cv::Mat> images, cv::Mat& features, cv::Mat& labels, int label);
+

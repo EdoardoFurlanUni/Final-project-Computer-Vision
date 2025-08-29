@@ -148,6 +148,7 @@ std::vector<cv::Mat> preprocess_images(const std::vector<cv::Mat>& images, const
         cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(3, cv::Size(15, 15));
         clahe->apply(new_image, new_image);
         cv::GaussianBlur(new_image, new_image, cv::Size(s,s), sigma);
+        //cv::equalizeHist(new_image, new_image);
 
         processed_images.push_back(new_image);
     }
@@ -166,7 +167,7 @@ std::vector<cv::Mat> preprocess_images_test(const std::vector<cv::Mat>& images, 
         cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(3, cv::Size(15, 15));
         clahe->apply(new_image, new_image);
         cv::GaussianBlur(new_image, new_image, cv::Size(s,s), sigma);
-
+        //cv::equalizeHist(new_image, new_image);
         processed_images.push_back(new_image);
     }
 

@@ -27,23 +27,57 @@ int main(int argc, const char* argv[])
 
 
     // ----- LOAD IMAGES -----
-    const float downsampling_factor = 0.75;
+    const float downsampling_factor = 1;
 
     // load images in dataset path
     std::vector<std::vector<cv::Mat>> dataset_images_gray;
     dataset_images_gray.reserve(dataset_images_paths.size());
+    size_t coin_class = 1;
+    cv::Mat trainingData, trainingLabels;
     for (const std::string& folder : dataset_images_paths) {
 
         std::vector<cv::Mat> images_in_folder = load_images_from_folder(folder, cv::IMREAD_GRAYSCALE);
-        
+
+        datasetWithFeatures(images_in_folder, trainingData, trainingLabels, coin_class);
         // downsample
         for (cv::Mat& image : images_in_folder) {
             cv::resize(image, image, cv::Size(), downsampling_factor, downsampling_factor);
         }
 
         dataset_images_gray.push_back(images_in_folder);
+        coin_class++;
     }
 
+    // Converti in float per la SVM
+    trainingData.convertTo(trainingData, CV_32F);
+
+    // Crea e configura la SVM
+    cv::Ptr<cv::ml::SVM> svm = cv::ml::SVM::create();
+    svm->setType(cv::ml::SVM::C_SVC);
+    svm->setKernel(cv::ml::SVM::LINEAR); // puoi provare anche RBF
+    svm->setTermCriteria(cv::TermCriteria(cv::TermCriteria::MAX_ITER, 1000, 1e-6));
+
+
+    // Grid search su C e gamma
+    cv::ml::ParamGrid Cgrid   = cv::ml::SVM::getDefaultGrid(cv::ml::SVM::C);
+    cv::ml::ParamGrid gammaGrid = cv::ml::SVM::getDefaultGrid(cv::ml::SVM::GAMMA);
+    cv::ml::ParamGrid pGrid = cv::ml::SVM::getDefaultGrid(cv::ml::SVM::P);
+    cv::ml::ParamGrid nuGrid = cv::ml::SVM::getDefaultGrid(cv::ml::SVM::NU);
+    cv::ml::ParamGrid coeffGrid = cv::ml::SVM::getDefaultGrid(cv::ml::SVM::COEF);
+
+        // Allena con trainAuto → fa cross-validation e cerca i parametri migliori
+    svm->trainAuto(cv::ml::TrainData::create(trainingData, cv::ml::ROW_SAMPLE, trainingLabels),
+                   10, // k-fold cross-validation
+                   Cgrid, gammaGrid, pGrid, nuGrid, coeffGrid, cv::ml::ParamGrid());
+
+
+    std::cout << "Best C: " << svm->getC() << std::endl;
+    std::cout << "Best Gamma: " << svm->getGamma() << std::endl;
+    std::cout << "Best Kernel: " << svm->getKernelType() << std::endl;
+
+     // Salva il modello
+    svm->save("coin_svm.yml");
+    std::cout << "Modello salvato in coin_svm.yml" << std::endl;
     // load images in test path
     std::vector<cv::Mat> test_images_gray = load_images_from_folder(test_images_path, cv::IMREAD_GRAYSCALE);
     for (cv::Mat& image : test_images_gray) {
@@ -117,7 +151,7 @@ int main(int argc, const char* argv[])
             // cv::imshow("Hough Circles", test_images_colour[i]);
             // cv::waitKey(0);
 
-            // // Show coin images *****
+            // Show coin images *****
             // cv::namedWindow("Coin", cv::WINDOW_KEEPRATIO);
             // cv::imshow("Coin", preprocessed_coin_images[j]);
             // cv::waitKey(0);
@@ -140,74 +174,30 @@ int main(int argc, const char* argv[])
 
         // list of detected coins with reference to the whole test image
         std::vector<DetectedCoin> coins_found;     // center, radius, confidence, class
-
+        DetectedCoin match;
         // loop over all coins sub-images
         for (size_t j = 0; j < coin_images.size(); j++) {
+
             cv::Mat coin_img = coin_images[j];
-
-            // best match with reference to the coin image
-            DetectedCoin best_match;
-            best_match.confidence = -1.0; // initialization
-
-            // matching over all templates
-            for (size_t c = 0; c < coins_classes.size(); c++) {
-                for (const cv::Mat& template_img : preprocessed_dataset_images[c]) {
-
-                    // if template is bigger than coin image, skip matching
-                    if (template_img.cols > coin_img.cols || template_img.rows > coin_img.rows) {
-                        // // Show skipped template *****
-                        // std::cout << "Skipping template of class " << coins_classes[c] << " of size " << template_img.size() << " for coin image " << j << " of size " << coin_img.size() << std::endl;
-                        continue;
-                    }
-
-                    // rotate template
-                    std::vector<cv::Mat> rotations = rotate_template(template_img, 8);
-                    for (const cv::Mat& rotated_template : rotations) {
-
-                        cv::Mat result;
-
-                        cv::matchTemplate(coin_img, rotated_template, result, cv::TM_CCOEFF_NORMED);
-                        
-                        DetectedCoin current_match = get_best_match_above_threshold(result, 0.5, template_img.cols, coins_classes[c]);
-                        // // Print current match confidence *****
-                        // std::cout << "Current match confidence: " << current_match.confidence << std::endl;
-
-                        if (current_match.confidence > best_match.confidence) {
-                            best_match = current_match;
-                        }
-                    }
-                }
-            }
+            cv::namedWindow("Coin Image", cv::WINDOW_KEEPRATIO);
+            cv::imshow("Coin Image", coin_img);
+            cv::Mat features = getHOGFeatures(coin_img);
+            features.convertTo(features, CV_32F);
+            int response = (int)svm->predict(features);
+            std::cout << "Classe predetta: " << response << std::endl;
+            match.class_name = coins_classes[response - 1];
+            match.confidence = 1.0; // SVM does not provide a confidence score
+            match.radius = circles_positions[i][j][2];
+            match.center = cv::Point(circles_positions[i][j][0], circles_positions[i][j][1]);
+            cv::waitKey(0);
 
             // // Print best match confidence *****
             // std::cout << "Best match confidence: " << best_match.confidence << std::endl; 
             // if a match was found convert it from coin reference frame to test image frame
-            if (best_match.confidence > 0) {
-
-                // // Show circle found in coin image *****
-                // cv::namedWindow("Coin", cv::WINDOW_KEEPRATIO); 
-                // cv::cvtColor(coin_img, coin_img, cv::COLOR_GRAY2BGR);
-                // cv::circle(coin_img, best_match.center, best_match.radius, cv::Scalar(0, 255, 0), 5);
-                // cv::imshow("Coin", coin_img);
-                // cv::waitKey(0);
-
-                best_match.center += cv::Point(std::max(0.0f, circles_positions[i][j][0] - circles_positions[i][j][2] - coin_image_margin), std::max(0.0f, circles_positions[i][j][1] - circles_positions[i][j][2] - coin_image_margin));
-                
-                // // Show circle found in whole image *****
-                // cv::namedWindow("whole image", cv::WINDOW_KEEPRATIO);
-                // cv::circle(test_images_colour[i], best_match.center, best_match.radius, cv::Scalar(0, 255, 0), 5);
-                // cv::imshow("whole image", test_images_colour[i]);
-                // cv::waitKey(0);
-
-                coins_found.push_back(best_match);
-            }
-        }
 
         // Draw all labels
-        for (const auto& d : coins_found) {
-            cv::circle(test_images_colour[i], d.center, d.radius, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor), cv::LINE_AA);
-            cv::putText(test_images_colour[i], d.class_name, cv::Point(d.center.x, d.center.y - 10), cv::FONT_HERSHEY_SIMPLEX, 2*downsampling_factor, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor));
-        }
+        cv::circle(test_images_colour[i], match.center, match.radius, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor), cv::LINE_AA);
+        cv::putText(test_images_colour[i], match.class_name, cv::Point(match.center.x, match.center.y - 10), cv::FONT_HERSHEY_SIMPLEX, 2*downsampling_factor, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor));
 
         // Measure the time taken for template matching
         auto end = std::chrono::high_resolution_clock::now();
@@ -218,7 +208,7 @@ int main(int argc, const char* argv[])
         std::cout << "number of matches: " << coins_found.size() << std::endl;
         cv::waitKey(0);
     }
-
+    }
     // ----- HOUGH LINES (test) -----
     // ----- COMPUTE OUTPUT (test) -----
 
@@ -226,4 +216,5 @@ int main(int argc, const char* argv[])
     
     return 0;
 }
+
 
