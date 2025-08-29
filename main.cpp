@@ -87,7 +87,11 @@ int main(int argc, const char* argv[])
         cv::Mat img_HSV;
         cv::cvtColor(test_images_colour[i], img_HSV, cv::COLOR_BGR2HSV);
 
-        std::vector<cv::Vec3f> circles = get_circles_positions(img_HSV, downsampling_factor);
+        cv::Mat img;
+        
+        std::vector<cv::Vec3f> circles = get_circles_positions(test_images_colour[i], downsampling_factor);
+
+        //std::vector<cv::Vec3f> circles = get_circles_positions(img_HSV, downsampling_factor);
         circles_positions.push_back(circles);
 
         std::vector<cv::Mat> coin_images = split_image_by_coins(test_images_gray[i], circles, coin_image_margin);

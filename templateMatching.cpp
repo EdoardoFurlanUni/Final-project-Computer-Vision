@@ -1,5 +1,5 @@
 #include "main.h"
-
+/*
 std::vector<cv::Vec3f> get_circles_positions(const cv::Mat& I, const float downsampling_factor) {
     std::vector<cv::Vec3f> circles;
 
@@ -39,6 +39,89 @@ std::vector<cv::Vec3f> get_circles_positions(const cv::Mat& I, const float downs
 
     return circles;
 }
+*/
+
+std::vector<cv::Vec3f> get_circles_positions(const cv::Mat& I, const float downsampling_factor) {
+    std::vector<cv::Vec3f> circles;
+    cv::Mat mask;
+
+    cv::Mat imgLab;
+    cv::cvtColor(I, imgLab, cv::COLOR_BGR2Lab);
+
+    // Split nei canali
+    cv::Mat mask_lab;
+    std::vector<cv::Mat> lab_planes(3);
+    cv::split(imgLab, lab_planes);
+
+    cv::Mat L = lab_planes[0];  // Lightness
+    cv::Mat a = lab_planes[1];  // Green ↔ Red
+    cv::Mat b = lab_planes[2];  // Blue ↔ Yellow
+
+    //set a threshold in Lab format
+    cv::inRange(a, 150, 255, a);
+    cv::inRange(b, 138, 255, b);
+    cv::bitwise_or(a, b, mask_lab); 
+
+    // Morphological operations
+    // Kernel definition for erosion
+    cv::Mat kernel = cv::getStructuringElement(
+        cv::MORPH_ELLIPSE, // shape
+        cv::Size(7, 7)     // size
+    );
+
+    // Erosion (shrinks the white areas)
+    cv::Mat eroded;
+    cv::erode(mask_lab, eroded, kernel);
+
+    // Dilation (expands the white areas)
+    cv::Mat mask_lab_dilated;
+    cv::dilate(eroded, mask_lab_dilated, cv::Mat(), cv::Point(-1,-1), 50); 
+    
+    // Threshold in HSV space
+    cv::Mat mask_hsv;
+    cv::cvtColor(I, mask_hsv, cv::COLOR_BGR2HSV);
+    cv::inRange(I, cv::Scalar(0, 40, 0), cv::Scalar(180, 255, 255), mask_hsv);
+
+    // Refine HSV mask with Lab mask
+    cv::Mat mask_hsv_refined;
+    cv::bitwise_and(mask_hsv, mask_lab_dilated, mask_hsv_refined);
+
+    // Combine both masks
+    cv::bitwise_or(mask_lab, mask_hsv_refined, mask);
+
+    /*
+    //uncomment to see the final mask 
+    cv::namedWindow("Final Mask", cv::WINDOW_KEEPRATIO);
+    cv::imshow("Final Mask", mask);
+    */
+
+    // Convert to grayscale and blur
+    cv::Mat gray;
+    if (mask.channels() == 3) {
+        cv::cvtColor(mask, gray, cv::COLOR_BGR2GRAY);
+    } else {
+        gray = mask.clone();
+    }
+    // define kernel size a 9 * downsampling factor and cast to the nearest odd value
+    int kernel_size = static_cast<int>(9 * downsampling_factor);
+    if (kernel_size % 2 == 0) {
+        kernel_size += 1;
+    }
+    cv::GaussianBlur(gray, gray, cv::Size(kernel_size, kernel_size), downsampling_factor*2, downsampling_factor*2);
+
+     // Find circles using Hough Transform
+    cv::HoughCircles(gray, circles, cv::HOUGH_GRADIENT,
+                    1,     // dp
+                    200*downsampling_factor,   // minDist
+                    100, 30, // param1, param2
+                    95*downsampling_factor, 210*downsampling_factor); // minRadius, maxRadius
+    
+    // Sort circles by radius in ascending order
+    std::sort(circles.begin(), circles.end(), [](const cv::Vec3f& a, const cv::Vec3f& b) { return a[2] < b[2]; });
+
+    return circles;
+}
+
 
 std::vector<cv::Mat> split_image_by_coins(const cv::Mat& I, const std::vector<cv::Vec3f>& circles, int margin) {
     std::vector<cv::Mat> coin_images;
