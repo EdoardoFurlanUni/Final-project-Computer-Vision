@@ -109,7 +109,7 @@ struct DetectedCoin {
 /**
  * @brief Finds the positions of circles in the image
 *
- * @param I input image in HSV format
+ * @param I input image in BGR format
  * @param downsampling_factor factor by which the image was downsampled
  * 
  * @return vector of circle positions (x, y, radius)
