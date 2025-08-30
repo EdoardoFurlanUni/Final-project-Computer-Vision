@@ -1,45 +1,4 @@
 #include "main.h"
-/*
-std::vector<cv::Vec3f> get_circles_positions(const cv::Mat& I, const float downsampling_factor) {
-    std::vector<cv::Vec3f> circles;
-
-    // verify that I is in HSV format
-    if (I.empty() || I.type() != CV_8UC3) {
-        std::cerr << "Input image is empty or not in HSV format." << std::endl;
-        return circles;
-    }
-
-    // Apply a threshold on the saturation
-    cv::Mat mask;
-    cv::inRange(I, cv::Scalar(0, 40, 0), cv::Scalar(180, 255, 255), mask);
-
-    // Convert to grayscale and blur
-    cv::Mat gray;
-    if (mask.channels() == 3) {
-        cv::cvtColor(mask, gray, cv::COLOR_BGR2GRAY);
-    } else {
-        gray = mask.clone();
-    }
-    // define kernel size a 9 * downsampling factor and cast to the nearest odd value
-    int kernel_size = static_cast<int>(9 * downsampling_factor);
-    if (kernel_size % 2 == 0) {
-        kernel_size += 1;
-    }
-    cv::GaussianBlur(gray, gray, cv::Size(kernel_size, kernel_size), downsampling_factor*2, downsampling_factor*2);
-
-     // Find circles using Hough Transform
-    cv::HoughCircles(gray, circles, cv::HOUGH_GRADIENT,
-                    1,     // dp
-                    110*downsampling_factor,   // minDist
-                    100, 30, // param1, param2
-                    95*downsampling_factor, 210*downsampling_factor); // minRadius, maxRadius
-    
-    // Sort circles by radius in ascending order
-    std::sort(circles.begin(), circles.end(), [](const cv::Vec3f& a, const cv::Vec3f& b) { return a[2] < b[2]; });
-
-    return circles;
-}
-*/
 
 std::vector<cv::Vec3f> get_circles_positions(const cv::Mat& I, const float downsampling_factor) {
     std::vector<cv::Vec3f> circles;
@@ -227,4 +186,76 @@ std::vector<cv::Mat> rotate_template(const cv::Mat& templ, const int num_rotatio
         rotated_templates.push_back(rotated);
     }
     return rotated_templates;
+}
+
+DetectedCoin detect_coin(const cv::Mat& coin_image, std::vector<cv::Mat>& templates, const std::string& coin_class, 
+                         const int number_rotations, const float matching_threshold) {
+    // best match with reference to the coin image
+    DetectedCoin best_match;
+    best_match.confidence = -1.0; // initialization
+
+    // matching over all templates
+    for (const cv::Mat& template_img : templates) {
+
+        // if template is bigger than coin image, skip matching
+        if (template_img.cols > coin_image.cols || template_img.rows > coin_image.rows) {
+            // // Show skipped template *****
+            // std::cout << "Skipping template of class " << coin_class << " of size " << template_img.size() << " for coin image of size " << coin_image.size() << std::endl;
+            continue;
+        }
+
+        // rotate template
+        std::vector<cv::Mat> rotations = rotate_template(template_img, number_rotations);
+        for (const cv::Mat& rotated_template : rotations) {
+
+            cv::Mat result;
+            cv::matchTemplate(coin_image, rotated_template, result, cv::TM_CCOEFF_NORMED);
+
+            DetectedCoin current_match = get_best_match_above_threshold(result, matching_threshold, template_img.cols, coin_class);
+
+            if (current_match.confidence > best_match.confidence) {
+                best_match = current_match;
+            }
+        }
+    }
+    
+
+    return best_match;
+}
+
+std::vector<DetectedCoin> detect_all_coins(const std::vector<cv::Mat>& preprocessed_coin_images,
+                                           const std::vector<std::string>& coins_classes, std::vector<std::vector<cv::Mat>>& preprocessed_dataset_images,
+                                           const int number_rotations, const float matching_threshold, 
+                                           const std::vector<cv::Vec3f>& circles_positions, const float coin_image_margin) {
+    // list of detected coins with reference to the whole test image
+    std::vector<DetectedCoin> detected_coins;   // center, radius, confidence, class
+
+    // loop over all coins sub-images
+    for (size_t j = 0; j < preprocessed_coin_images.size(); j++) {
+        cv::Mat coin_img = preprocessed_coin_images[j];
+
+        // best match with reference to the coin image
+        DetectedCoin best_match;
+        best_match.confidence = -1.0; // initialization
+
+        // matching over all classes of templates
+        for (size_t c = 0; c < coins_classes.size(); c++) {
+
+            DetectedCoin current_match = detect_coin(coin_img, preprocessed_dataset_images[c], coins_classes[c], number_rotations, matching_threshold);
+
+            if (current_match.confidence > best_match.confidence) {
+                best_match = current_match;
+            }
+        }
+
+        // if a match was found convert it from coin reference frame to test image frame
+        if (best_match.confidence > 0) {
+
+            best_match.center += cv::Point(std::max(0.0f, circles_positions[j][0] - circles_positions[j][2] - coin_image_margin), std::max(0.0f, circles_positions[j][1] - circles_positions[j][2] - coin_image_margin));
+
+            detected_coins.push_back(best_match);
+        }
+    }
+
+    return detected_coins;
 }

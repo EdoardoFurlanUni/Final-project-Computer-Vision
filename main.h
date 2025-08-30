@@ -174,6 +174,37 @@ bool add_near_point(const DetectedCoin& new_point, std::vector<DetectedCoin>& po
  */
 std::vector<cv::Mat> rotate_template(const cv::Mat& templ, const int num_rotations);
 
+/**
+ * @brief Detects if there is a coin in the given image using template matching
+ *
+ * @param coin_image the image containing one circle
+ * @param templates the set of templates to match against
+ * @param coin_class the class label of the coin
+ * @param number_rotations the number of rotations to apply to each template
+ * @param matching_threshold the threshold for considering a match valid
+ *
+ * @return the best matching coin detection, if there is none matching then DetectedCoin.confidence = -1
+ */
+DetectedCoin detect_coin(const cv::Mat& coin_image, std::vector<cv::Mat>& templates, const std::string& coin_class, 
+                         const int number_rotations, const float matching_threshold);
+
+/**
+ * @brief Detects all coins in the given splitted image using template matching
+ *
+ * @param preprocessed_coin_images the splitted images containing one possible coin each
+ * @param coins_classes the classes of the coins
+ * @param preprocessed_dataset_images the preprocessed dataset images 
+ * @param number_rotations the number of rotations to apply to each template 
+ * @param matching_threshold the threshold for considering a match valid
+ * @param circles_positions the positions of the detected circles -> used for returning to total image frame
+ * @param coin_image_margin the margin added around each coin image -> used for returning to total image frame
+ *
+ * @return a vector of detected coins for each image
+ */
+std::vector<DetectedCoin> detect_all_coins(const std::vector<cv::Mat>& preprocessed_coin_images,
+                                           const std::vector<std::string>& coins_classes, std::vector<std::vector<cv::Mat>>& preprocessed_dataset_images,
+                                           const int number_rotations, const float matching_threshold, 
+                                           const std::vector<cv::Vec3f>& circles_positions, const float coin_image_margin);
 
 // ----- PERFORMANCE METRICS -----
 
