@@ -104,11 +104,14 @@ int main(int argc, const char* argv[])
 
         cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
         clahe->setClipLimit(4.0);          // limits on contrast
-        clahe->setTilesGridSize(cv::Size(64,64)); // size of the grid for histogram equalization
+        clahe->setTilesGridSize(cv::Size(16,16)); // size of the grid for histogram equalization
         clahe->apply(lab_planes[0], lab_planes[0]);
 
         cv::merge(lab_planes, lab);
         cv::cvtColor(lab, frame, cv::COLOR_Lab2BGR);
+        
+        // OPZIONALE -> per tornare indietro commentare e a riga 125 sostituire con maxDiff < 0.92 || maxDiff > 0.94
+        cv::resize(frame, frame, cv::Size(), 0.5f, 0.5f);
 
         //cv::namedWindow("CLAHE", cv::WINDOW_KEEPRATIO);
         //cv::imshow("CLAHE", frame);
@@ -119,8 +122,8 @@ int main(int argc, const char* argv[])
             // compute difference between frames
             maxDiff = getSSIM(frame, last);
             std::cout << "Max difference between frames: " << maxDiff << std::endl;
-            // if difference is small, use last coins found
-            if (maxDiff < 0.92) {                
+            // if similarity is in this range, use last coins found
+            if (maxDiff < 0.9 || maxDiff > 0.92) {                
                 for (const auto& d : last_coins_found) {
                     cv::circle(original_frame, d.center, d.radius, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor), cv::LINE_AA);
                     cv::putText(original_frame, d.class_name, cv::Point(d.center.x, d.center.y - 10), cv::FONT_HERSHEY_SIMPLEX, 2*downsampling_factor, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor));
@@ -136,11 +139,11 @@ int main(int argc, const char* argv[])
         }
         last = frame.clone();
 
+        // reset frame
+        frame = original_frame.clone();
+
         cv::Mat frame_gray;
         cv::cvtColor(frame, frame_gray, cv::COLOR_BGR2GRAY);
-
-        cv::Mat img_HSV;
-        cv::cvtColor(frame, img_HSV, cv::COLOR_BGR2HSV);
 
         std::vector<cv::Vec3f> circles = get_circles_positions(frame, downsampling_factor);
 
@@ -190,7 +193,7 @@ int main(int argc, const char* argv[])
 
         // loop over all coins sub-images
         for (size_t j = 0; j < preprocessed_coin_images.size(); j++) {
-            cv::Mat coin_img = coin_images[j];
+            cv::Mat coin_img = preprocessed_coin_images[j];
 
             // best match with reference to the coin image
             DetectedCoin best_match;
