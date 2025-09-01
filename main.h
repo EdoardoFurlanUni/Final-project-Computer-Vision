@@ -96,6 +96,16 @@ std::vector<cv::Mat> cut_images(const std::vector<cv::Mat>& images, const std::v
  */
 std::vector<cv::Mat> preprocess_images(const std::vector<cv::Mat>& images, const std::vector<cv::Point2f>& points, int s, float sigma);
 
+/**
+ * @brief Computes the Structural Similarity Index (SSIM) between two images
+ * 
+ * @param img1 first image
+ * @param img2 second image
+ * 
+ * @return SSIM value
+ */
+double getSSIM(const cv::Mat& img1, const cv::Mat& img2);
+
 
 // ----- TEMPLATE MATCHING -----
 
