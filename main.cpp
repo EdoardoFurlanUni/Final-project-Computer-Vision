@@ -79,7 +79,7 @@ int main(int argc, const char* argv[])
 
     // compute circles locations and split gray-scale test images in smaller images containing coins
     // then preprocess those images
-    cv::VideoCapture cap("../test/videos/video2.MOV");
+    cv::VideoCapture cap("../test/videos/video1.mp4");
     if (!cap.isOpened()) {
         std::cerr << "Errore: impossibile aprire il video!" << std::endl;
         return -1;
@@ -173,7 +173,7 @@ int main(int argc, const char* argv[])
 
                         cv::matchTemplate(coin_img, rotated_template, result, cv::TM_CCORR_NORMED);
 
-                        DetectedCoin current_match = get_best_match_above_threshold(result, 0.9, template_img.cols, coins_classes[c]);
+                        DetectedCoin current_match = get_best_match_above_threshold(result, 0.8, template_img.cols, coins_classes[c]);
                         // // Print current match confidence *****
                         // std::cout << "Current match confidence: " << current_match.confidence << std::endl;
 
