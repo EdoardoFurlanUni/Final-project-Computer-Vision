@@ -85,15 +85,56 @@ int main(int argc, const char* argv[])
         return -1;
     }
 
-    cv::Mat frame;
+    cv::Mat original_frame, frame, last;
     cv::namedWindow("Template Matching", cv::WINDOW_KEEPRATIO);
 
+    std::vector<DetectedCoin> last_coins_found;
     while (true) {
-        cap >> frame;
-        if (frame.empty()) break;  // fine del video
-
+        cap >> original_frame;
+        if (original_frame.empty()) break;  // fine del video
+    
         // upscale and downsample to obtain the same size for coins
-        cv::resize(frame, frame, cv::Size(), downsampling_factor*1.89f, downsampling_factor*1.89f);
+        cv::resize(original_frame, original_frame, cv::Size(), downsampling_factor*1.89f, downsampling_factor*1.89f);
+        frame = original_frame.clone();
+        // CLAHE to improve contrast and avoid illumination problems
+        cv::Mat lab;
+        cv::cvtColor(frame, lab, cv::COLOR_BGR2Lab);
+        std::vector<cv::Mat> lab_planes;
+        cv::split(lab, lab_planes);
+
+        cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
+        clahe->setClipLimit(4.0);          // limits on contrast
+        clahe->setTilesGridSize(cv::Size(64,64)); // size of the grid for histogram equalization
+        clahe->apply(lab_planes[0], lab_planes[0]);
+
+        cv::merge(lab_planes, lab);
+        cv::cvtColor(lab, frame, cv::COLOR_Lab2BGR);
+
+        //cv::namedWindow("CLAHE", cv::WINDOW_KEEPRATIO);
+        //cv::imshow("CLAHE", frame);
+        //cv::waitKey(0);
+        // ***TOLGIERE QUESTO IF SE NON SI VUOLE IL CONTROLLO DI SIMILARITA' TRA FRAME***
+        if(!last.empty()) {
+            double maxDiff;
+            // compute difference between frames
+            maxDiff = getSSIM(frame, last);
+            std::cout << "Max difference between frames: " << maxDiff << std::endl;
+            // if difference is small, use last coins found
+            if (maxDiff < 0.92) {                
+                for (const auto& d : last_coins_found) {
+                    cv::circle(original_frame, d.center, d.radius, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor), cv::LINE_AA);
+                    cv::putText(original_frame, d.class_name, cv::Point(d.center.x, d.center.y - 10), cv::FONT_HERSHEY_SIMPLEX, 2*downsampling_factor, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor));
+                }
+                // show current frame with last coins found
+                cv::imshow("Template Matching", original_frame);
+                last = frame.clone();
+                char c = (char)cv::waitKey(1);
+                if (c == 27) break;
+                continue;
+            }
+
+        }
+        last = frame.clone();
 
         cv::Mat frame_gray;
         cv::cvtColor(frame, frame_gray, cv::COLOR_BGR2GRAY);
@@ -121,8 +162,8 @@ int main(int argc, const char* argv[])
             cv::Point center(cvRound(circle[0]), cvRound(circle[1]));
             int radius = cvRound(circle[2]);
 
-            cv::circle(frame, center, radius, cv::Scalar(255, 0, 255), static_cast<int>(3*downsampling_factor), cv::LINE_AA);
-            cv::putText(frame, std::to_string(j), center, cv::FONT_HERSHEY_SIMPLEX, 1.5*downsampling_factor, cv::Scalar(255, 0, 255), static_cast<int>(3*downsampling_factor));
+            cv::circle(original_frame, center, radius, cv::Scalar(255, 0, 255), static_cast<int>(3*downsampling_factor), cv::LINE_AA);
+            cv::putText(original_frame, std::to_string(j), center, cv::FONT_HERSHEY_SIMPLEX, 1.5*downsampling_factor, cv::Scalar(255, 0, 255), static_cast<int>(3*downsampling_factor));
 
             // // Show circles on original image *****
             // cv::namedWindow("Hough Circles", cv::WINDOW_KEEPRATIO);
@@ -205,7 +246,9 @@ int main(int argc, const char* argv[])
                 coins_found.push_back(best_match);
             }
         }
-
+        //copy coins_found in last_coins_found
+        last_coins_found = coins_found;
+        
         // Store predicted labels for each image
         predicted_labels.push_back(coins_found);
 
@@ -216,11 +259,11 @@ int main(int argc, const char* argv[])
 
         // Show all labels on the test image *****
         for (const auto& d : coins_found) {
-            cv::circle(frame, d.center, d.radius, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor), cv::LINE_AA);
-            cv::putText(frame, d.class_name, cv::Point(d.center.x, d.center.y - 10), cv::FONT_HERSHEY_SIMPLEX, 2*downsampling_factor, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor));
+            cv::circle(original_frame, d.center, d.radius, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor), cv::LINE_AA);
+            cv::putText(original_frame, d.class_name, cv::Point(d.center.x, d.center.y - 10), cv::FONT_HERSHEY_SIMPLEX, 2*downsampling_factor, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor));
         }
         
-        cv::imshow("Template Matching", frame);
+        cv::imshow("Template Matching", original_frame);
         std::cout << "number of matches: " << coins_found.size() << std::endl;
         // cv::waitKey(0);
         // Esc per uscire
