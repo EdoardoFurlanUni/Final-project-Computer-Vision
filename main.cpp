@@ -15,7 +15,8 @@ int main(int argc, const char* argv[])
 
     const std::string test_images_path = "../test/images/";
     const std::string test_labels_path = "../test/labels/";
-
+    const std::string test_videos_labels_path_1 = "../test/videos/video1_frame/labels/";
+    const std::string test_videos_labels_path_2 = "../test/videos/video2_frame/labels/";
     const std::vector<std::string> test_videos_path = {
         "../test/videos/", "../test/videos/video1_frame/images", "../test/videos/video2_frame/images"
     };
@@ -45,14 +46,14 @@ int main(int argc, const char* argv[])
     }
 
     // load images in test path
-    std::vector<cv::Mat> test_images_gray = load_images_from_folder(test_images_path, cv::IMREAD_GRAYSCALE);
+    /*std::vector<cv::Mat> test_images_gray = load_images_from_folder(test_images_path, cv::IMREAD_GRAYSCALE);
     for (cv::Mat& image : test_images_gray) {
         cv::resize(image, image, cv::Size(), downsampling_factor, downsampling_factor);
     }
     std::vector<cv::Mat> test_images_colour = load_images_from_folder(test_images_path, cv::IMREAD_COLOR);
     for (cv::Mat& image : test_images_colour) {
         cv::resize(image, image, cv::Size(), downsampling_factor, downsampling_factor);
-    }
+    }*/
 
     // ----- PREPROCESSING (dataset and test) -----
     const int coin_image_margin = static_cast<int>(25*downsampling_factor);
@@ -79,7 +80,8 @@ int main(int argc, const char* argv[])
 
     // compute circles locations and split gray-scale test images in smaller images containing coins
     // then preprocess those images
-    cv::VideoCapture cap("../test/videos/video1.mp4");
+    cv::VideoCapture cap("../test/videos/video2.MOV"); //modify the video to open
+    int video = 2; // choose which video to use (1 or 2)
     if (!cap.isOpened()) {
         std::cerr << "Errore: impossibile aprire il video!" << std::endl;
         return -1;
@@ -89,8 +91,39 @@ int main(int argc, const char* argv[])
     cv::namedWindow("Template Matching", cv::WINDOW_KEEPRATIO);
 
     std::vector<DetectedCoin> last_coins_found;
+    std::vector<cv::Vec3f> last_circles_found;
+    std::vector<std::vector<DetectedCoin>> ground_truth_labels;
+    std::vector<std::vector<DetectedCoin>> predicted_labels;
+    std::vector<std::vector<cv::Vec3f>> predicted_circles;
+
+
+    const int number_of_images = 5;
+    int frame_indexes[number_of_images];
+
+    if (video == 1){
+        ground_truth_labels = get_labels_from_folder(test_videos_labels_path_1, downsampling_factor);
+        frame_indexes[0] = 156;
+        frame_indexes[1] = 250;
+        frame_indexes[2] = 377;
+        frame_indexes[3] = 452;
+        frame_indexes[4] = 562;
+    } else {
+        frame_indexes[0] = 117;
+        frame_indexes[1] = 185;
+        frame_indexes[2] = 251;
+        frame_indexes[3] = 332;
+        frame_indexes[4] = 532;
+        ground_truth_labels = get_labels_from_folder(test_videos_labels_path_2, downsampling_factor);
+    }
+    int sum = 0;
+    int frame_count = 0;
+    std::vector<cv::Mat> test_images_colour; // array that will contain the frames to be labeled for the performance metrics
+
     while (true) {
+        
         cap >> original_frame;
+        frame_count++;
+        std::cout << "Processing frame: " << frame_count << std::endl;
         if (original_frame.empty()) break;  // fine del video
     
         // upscale and downsample to obtain the same size for coins
@@ -123,13 +156,34 @@ int main(int argc, const char* argv[])
             maxDiff = getSSIM(frame, last);
             std::cout << "Max difference between frames: " << maxDiff << std::endl;
             // if similarity is in this range, use last coins found
-            if (maxDiff < 0.9 || maxDiff > 0.92) {                
+            if (maxDiff < 0.9 || maxDiff > 0.92) {          
+                sum = 0;      
                 for (const auto& d : last_coins_found) {
                     cv::circle(original_frame, d.center, d.radius, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor), cv::LINE_AA);
                     cv::putText(original_frame, d.class_name, cv::Point(d.center.x, d.center.y - 10), cv::FONT_HERSHEY_SIMPLEX, 2*downsampling_factor, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor));
+                    if (d.class_name == "1_EURO") sum += 100;
+                    else if (d.class_name == "2_EURO") sum += 200;
+                    else
+                    sum += std::stoi(d.class_name.substr(0, d.class_name.find('_'))); // estraggo il valore numerico dal nome della classe
                 }
+                std::ostringstream oss;
+                oss << sum / 100 << "." << std::setw(2) << std::setfill('0') << sum % 100;
+                std::string text = oss.str();
+                cv::putText(original_frame, "Sum: " + text + " euros", cv::Point(50, 100), cv::FONT_HERSHEY_SIMPLEX, 3 * downsampling_factor, cv::Scalar(0, 0, 255), static_cast<int>(5 * downsampling_factor));
                 // show current frame with last coins found
                 cv::imshow("Template Matching", original_frame);
+                        //add labels found to predicted_circles
+                for (int idx : frame_indexes) {
+                    if (frame_count == idx) {
+                        // Store predicted labels for each image
+                        predicted_labels.push_back(last_coins_found);
+                        test_images_colour.push_back(original_frame.clone());
+                        predicted_circles.push_back(last_circles_found);
+                        for (const auto& d : last_coins_found) {
+                            std::cout << d.class_name << " ";
+                        }
+                    }
+                }
                 last = frame.clone();
                 char c = (char)cv::waitKey(1);
                 if (c == 27) break;
@@ -185,7 +239,6 @@ int main(int argc, const char* argv[])
 
 
         // ----- TEMPLATE MATCHING (test) -----
-        std::vector<std::vector<DetectedCoin>> predicted_labels;
 
         std::vector<DetectedCoin> coins_found;     // center, radius, confidence, class
 
@@ -217,7 +270,7 @@ int main(int argc, const char* argv[])
 
                         cv::matchTemplate(coin_img, rotated_template, result, cv::TM_CCORR_NORMED);
 
-                        DetectedCoin current_match = get_best_match_above_threshold(result, 0.8, template_img.cols, coins_classes[c]);
+                        DetectedCoin current_match = get_best_match_above_threshold(result, 0.75, template_img.cols, coins_classes[c]);
                         // // Print current match confidence *****
                         // std::cout << "Current match confidence: " << current_match.confidence << std::endl;
 
@@ -251,21 +304,39 @@ int main(int argc, const char* argv[])
         }
         //copy coins_found in last_coins_found
         last_coins_found = coins_found;
-        
-        // Store predicted labels for each image
-        predicted_labels.push_back(coins_found);
+        last_circles_found = circles;
+        //add labels found to predicted_circles
+        for (int idx : frame_indexes) {
+            if (frame_count == idx) {
+                // Store predicted labels for each image
+                predicted_labels.push_back(coins_found);
+                test_images_colour.push_back(original_frame.clone());
+                predicted_circles.push_back(circles);
+                for (const auto& d : coins_found) {
+                    std::cout << d.class_name << " ";
+                }
+            }
+        }
+
 
         // Measure the time taken for template matching
         auto end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> elapsed = end - start;
         //std::cout << "Elapsed time: " << elapsed.count() << " seconds" << std::endl;
-
         // Show all labels on the test image *****
+        sum = 0;
         for (const auto& d : coins_found) {
             cv::circle(original_frame, d.center, d.radius, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor), cv::LINE_AA);
             cv::putText(original_frame, d.class_name, cv::Point(d.center.x, d.center.y - 10), cv::FONT_HERSHEY_SIMPLEX, 2*downsampling_factor, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor));
+            if (d.class_name == "1_EURO") sum += 100;
+            else if (d.class_name == "2_EURO") sum += 200;
+            else
+            sum += std::stoi(d.class_name.substr(0, d.class_name.find('_'))); // estraggo il valore numerico dal nome della classe
         }
-        
+        std::ostringstream oss;
+        oss << sum / 100 << "." << std::setw(2) << std::setfill('0') << sum % 100;
+        std::string text = oss.str();
+        cv::putText(original_frame, "Sum: " + text + " euros", cv::Point(50, 100), cv::FONT_HERSHEY_SIMPLEX, 3 * downsampling_factor, cv::Scalar(0, 0, 255), static_cast<int>(5 * downsampling_factor));
         cv::imshow("Template Matching", original_frame);
         std::cout << "number of matches: " << coins_found.size() << std::endl;
         // cv::waitKey(0);
@@ -273,6 +344,53 @@ int main(int argc, const char* argv[])
         char c = (char)cv::waitKey(1);
         if (c == 27) break;
 
+    }
+
+    std::cout << "number of predicted labels: " << predicted_labels.size() << std::endl;
+    std::cout << "number of ground truth labels: " << ground_truth_labels.size() << std::endl;
+    for (size_t i = 0; i < number_of_images; i++) {
+
+        std::cout << "######### Results for image " << i << " #########" << std::endl;
+
+        cv::Point2f score = compute_mIoU_and_accuracy(ground_truth_labels[i], predicted_labels[i]);
+        std::cout << "mIoU: " << score.x << std::endl;
+        std::cout << "Accuracy: " << score.y * 100 << "%" << std::endl;
+
+        float true_sum = sum_coins(ground_truth_labels[i]);
+        std::cout << "True sum of coins: " << true_sum << std::endl;
+        for (const auto& coin : predicted_labels[i]) {
+            std::cout << coin.class_name << " ";
+        }
+        float pred_sum = sum_coins(predicted_labels[i]);
+        std::cout << "Predicted sum of coins: " << pred_sum << std::endl;
+        float diff_sum = cv::abs(true_sum - pred_sum);
+        std::ostringstream out; // to not overwrite cout
+        out << std::fixed << std::setprecision(2);  // fix at 2 decimals
+        out << "True sum of coins: " << true_sum << " Predicted sum of coins: " << pred_sum << " Difference: " << diff_sum << std::endl;
+        std::cout << out.str(); 
+
+        // Draw circles
+        for (size_t j = 0; j < predicted_circles[i].size(); j++) {
+            cv::Vec3f& c = predicted_circles[i][j];
+            cv::Point center(cvRound(c[0]), cvRound(c[1]));
+            int radius = cvRound(c[2]);
+
+            cv::circle(test_images_colour[i], center, radius, cv::Scalar(255, 0, 255), static_cast<int>(3*downsampling_factor), cv::LINE_AA);
+            cv::putText(test_images_colour[i], std::to_string(j), cv::Point(center.x-radius/2, center.y+radius/2), cv::FONT_HERSHEY_SIMPLEX, 1.5*downsampling_factor, cv::Scalar(255, 0, 255), static_cast<int>(3*downsampling_factor));
+        }
+        // Draw ground truth coins
+        for (const auto& coin: ground_truth_labels[i]) {
+            cv::circle(test_images_colour[i], coin.center, coin.radius, cv::Scalar(255, 255, 255), static_cast<int>(5*downsampling_factor), cv::LINE_AA);
+            cv::putText(test_images_colour[i], coin.class_name, cv::Point(coin.center.x-coin.radius/2, coin.center.y-coin.radius/2), cv::FONT_HERSHEY_SIMPLEX, 1.5*downsampling_factor, cv::Scalar(255, 255, 255), static_cast<int>(5*downsampling_factor));
+        }
+        // Draw predicted coins
+        for (const auto& coin: predicted_labels[i]) {
+            cv::circle(test_images_colour[i], coin.center, coin.radius, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor), cv::LINE_AA);
+            cv::putText(test_images_colour[i], coin.class_name, cv::Point(coin.center.x-coin.radius/2, coin.center.y+coin.radius/2), cv::FONT_HERSHEY_SIMPLEX, 1.5*downsampling_factor, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor));
+        }
+        cv::namedWindow("Results", cv::WINDOW_KEEPRATIO);
+        cv::imshow("Results", test_images_colour[i]);
+        cv::waitKey(0);
     }
     return 0;
 }

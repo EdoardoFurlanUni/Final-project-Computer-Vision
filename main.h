@@ -204,7 +204,7 @@ std::vector<std::vector<DetectedCoin>> get_labels_from_folder(const std::string&
  *
  * @return IoU value
  */
-float intersection_over_union(const DetectedCoin label, const DetectedCoin prediction);
+cv::Point2f intersection_over_union(const DetectedCoin label, const DetectedCoin prediction);
 
 /**
  * @brief Computes the mean intersection over union between ground truth and predicted labels
@@ -216,4 +216,22 @@ float intersection_over_union(const DetectedCoin label, const DetectedCoin predi
  */
 float compute_mIoU(const std::vector<DetectedCoin> ground_truth_labels, const std::vector<DetectedCoin> predicted_labels);
 
+/**
+ * @brief Computes the sum of the values of the detected coins
+ * 
+ * @param coins vector of detected coins
+ * 
+ * @return sum of the values of the detected coins
+ */
+float sum_coins(const std::vector<DetectedCoin>& coins);
+
+/**
+ * @brief Computes the mean intersection over union and accuracy between ground truth and predicted labels
+ * 
+ * @param ground_truth_labels vector of ground truth labels
+ * @param predicted_labels vector of predicted labels
+ * 
+ * @return Point2f where x is the mean IoU and y is the accuracy
+ */
+cv::Point2f compute_mIoU_and_accuracy(const std::vector<DetectedCoin> ground_truth_labels, const std::vector<DetectedCoin> predicted_labels);
 #endif // MAIN_H
