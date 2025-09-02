@@ -3,21 +3,21 @@
 int main(int argc, const char* argv[])
 {
     const std::vector<std::string> coins_classes = {
-        {"1_CENT", "2_CENT", "10_CENT", "20_CENT", "50_CENT", "1_EURO", "2_EURO"}
+        "EUR_001", "EUR_002", "EUR_010", "EUR_020", "EUR_050", "EUR_100", "EUR_200"
     };
 
     const std::vector<std::string> dataset_images_paths= {
-        {"../template/images/1_CENT", "../template/images/2_CENT", "../template/images/10_CENT", "../template/images/20_CENT", "../template/images/50_CENT", "../template/images/1_EURO", "../template/images/2_EURO"}
+        "../template/images/EUR_001", "../template/images/EUR_002", "../template/images/EUR_010", "../template/images/EUR_020", "../template/images/EUR_050", "../template/images/EUR_100", "../template/images/EUR_200"
     };
     const std::vector<std::string> dataset_labels_paths= {
-        {"../template/labels/1_CENT", "../template/labels/2_CENT", "../template/labels/10_CENT", "../template/labels/20_CENT", "../template/labels/50_CENT", "../template/labels/1_EURO", "../template/labels/2_EURO"}
+        "../dataset/labels/EUR_001", "../dataset/labels/EUR_002", "../dataset/labels/EUR_010", "../dataset/labels/EUR_020", "../dataset/labels/EUR_050", "../dataset/labels/EUR_100", "../dataset/labels/EUR_200"
     };
 
     const std::string test_images_path = "../test/images/";
     const std::string test_labels_path = "../test/labels/";
 
     const std::vector<std::string> test_videos_path = {
-        {"../test/videos/", "../test/videos/video1_frame/images", "../test/videos/video2_frame/images"}
+        "../test/videos/", "../test/videos/video1_frame/images", "../test/videos/video2_frame/images"
     };
 
 
@@ -25,144 +25,140 @@ int main(int argc, const char* argv[])
     std::array<double, 8> accuracy = {0}; // an object is considered to be recognized only if its IoU is greater than 50%
     double sum_accuracy = 0; // average distance by the true sum in the images
 
+
     // ----- LOAD IMAGES -----
+    const float downsampling_factor = 0.75;
+
     // load images in dataset path
-    std::vector<std::vector<cv::Mat>> dataset_images;
-    dataset_images.reserve(dataset_images_paths.size());
+    std::vector<std::vector<cv::Mat>> dataset_images_gray;
+    dataset_images_gray.reserve(dataset_images_paths.size());
     for (const std::string& folder : dataset_images_paths) {
 
-        std::vector<cv::Mat> images_in_folder = load_images_from_folder(folder);
-        dataset_images.push_back(images_in_folder);
+        std::vector<cv::Mat> images_in_folder = load_images_from_folder(folder, cv::IMREAD_GRAYSCALE);
+        
+        // downsample
+        for (cv::Mat& image : images_in_folder) {
+            cv::resize(image, image, cv::Size(), downsampling_factor, downsampling_factor);
+        }
+
+        dataset_images_gray.push_back(images_in_folder);
     }
 
     // load images in test path
-    std::vector<cv::Mat> test_images = load_images_from_folder(test_images_path);
+    std::vector<cv::Mat> test_images_gray = load_images_from_folder(test_images_path, cv::IMREAD_GRAYSCALE);
+    for (cv::Mat& image : test_images_gray) {
+        cv::resize(image, image, cv::Size(), downsampling_factor, downsampling_factor);
+    }
+    std::vector<cv::Mat> test_images_colour = load_images_from_folder(test_images_path, cv::IMREAD_COLOR);
+    for (cv::Mat& image : test_images_colour) {
+        cv::resize(image, image, cv::Size(), downsampling_factor, downsampling_factor);
+    }
 
-    // ----- PREPROCESSING (dataset and test) -----
-    std::vector<cv::Point2f> points_contrast_stretching = {cv::Point2f(0,0), cv::Point2f(0.9*255, 255), cv::Point2f(255, 255)};
-    int gaussian_kernel_size = 3;
-    float gaussian_kernel_sigma = 1;
-    
+    // ----- PREPROCESSING (dataset) -----
+    const std::vector<cv::Point2f> points_contrast_stretching = {cv::Point2f(0,0), cv::Point2f(0.9*255, 255), cv::Point2f(255, 255)};
+    const int gaussian_kernel_size = 3;
+    const float gaussian_kernel_sigma = 1;
+
     // preprocess dataset images
     std::vector<std::vector<cv::Mat>> preprocessed_dataset_images;
-    preprocessed_dataset_images.reserve(dataset_images.size());
-    for (const auto& imgs_in_folder : dataset_images) {
+    preprocessed_dataset_images.reserve(dataset_images_gray.size());
+    for (const auto& imgs_in_folder : dataset_images_gray) {
 
         std::vector<cv::Mat> prep_imgs_in_folder = preprocess_images(imgs_in_folder, points_contrast_stretching, gaussian_kernel_size, gaussian_kernel_sigma);
         preprocessed_dataset_images.push_back(prep_imgs_in_folder);
     }
-    // // to show preprocessed images
-    for (const auto& imgs_in_folder : preprocessed_dataset_images) {
-        for (const cv::Mat& img : imgs_in_folder) {
-            cv::imshow("Preprocessed Image", img);
-            cv::waitKey(0);
-        }
-    }
+    // // to show preprocessed images *****
+    // for (const auto& imgs_in_folder : preprocessed_dataset_images) {
+    //     for (const cv::Mat& img : imgs_in_folder) {
+    //         cv::imshow("Preprocessed Image", img);
+    //         cv::waitKey(0);
+    //     }
+    // }
 
-    // preprocess test images
-    std::vector<cv::Mat> preprocessed_test_images = preprocess_images_test(test_images, points_contrast_stretching, gaussian_kernel_size, gaussian_kernel_sigma);
 
-    // ----- HOUGH CIRCLES (dataset and test) -----
-    /* for (const auto& imgs_in_folder : preprocessed_dataset_images) {
-        for (const cv::Mat& img_1ch : imgs_in_folder) {
-            cv::Mat img;
-            cv::cvtColor(img_1ch, img, cv::COLOR_GRAY2BGR);
-            std::vector<cv::Vec3f> circles;
-            cv::HoughCircles(img, circles, cv::HOUGH_GRADIENT, 3, img.cols/8, 200, 100, 0, 0);
-            std::cout << "Found " << circles.size() << " circles in the image." << std::endl;
-            for( size_t i = 0; i < circles.size(); i++ )
-            {
-                cv::Vec3i c = circles[i];
-                cv::Point center = cv::Point(c[0], c[1]);
-                // circle center
-                cv::circle(img, center, 1, cv::Scalar(0,100,100), 3, cv::LINE_AA);
-                // circle outline
-                int radius = c[2];
-                cv::circle(img, center, radius, cv::Scalar(255,0,255), 3, cv::LINE_AA);
-            }
-            cv::namedWindow("Hough Circles");
-            cv::imshow("Hough Circles", img);
-            cv::waitKey(0);
-        }
-    }
+    // ----- TEMPLATE MATCHING (test images) -----
+    std::vector<std::vector<cv::Vec3f>> predicted_circles;
+    std::vector<std::vector<DetectedCoin>> predicted_labels;
+    const int number_of_images = static_cast<int>(test_images_colour.size());
+    const int coin_image_margin = static_cast<int>(25*downsampling_factor);
+    const int rotations = 8;
+    const float matching_threshold = 0.5;
 
-    for (const cv::Mat& img : preprocessed_test_images) {
-        std::vector<cv::Vec3f> circles;
-        cv::HoughCircles(img, circles, cv::HOUGH_GRADIENT, 1, img.cols/8, 200, 100, 0, 0);
-        std::cout << "Found " << circles.size() << " circles in the image." << std::endl;
-        for( size_t i = 0; i < circles.size(); i++ )
-        {
-            cv::Vec3i c = circles[i];
-            cv::Point center = cv::Point(c[0], c[1]);
-            // circle center
-            cv::circle(img, center, 1, cv::Scalar(0,0,100), 3, cv::LINE_AA);
-            // circle outline
-            int radius = c[2];
-            cv::circle(img, center, radius, cv::Scalar(255,0,255), 3, cv::LINE_AA);
-        }
-        cv::namedWindow("Hough Circles test");
-        cv::imshow("Hough Circles test", img);
-        cv::waitKey(0);*/
-    //}
-    // ----- TEMPLATE MATCHING (test) -----
-    cv::namedWindow("Template Matching", cv::WINDOW_KEEPRATIO);
+    // loop over all test images
+    for (size_t i = 0; i < number_of_images; i++) {
 
-    for (const cv::Mat& img : preprocessed_test_images) {
+        // search for circles
+        std::vector<cv::Vec3f> circles = get_circles_positions(test_images_colour[i], downsampling_factor);
+        predicted_circles.push_back(circles);
+
+        // split and preprocess the whole image in sub-images containing coins
+        std::vector<cv::Mat> coin_images = split_image_by_coins(test_images_gray[i], circles, coin_image_margin);
+        std::vector<cv::Mat> preprocessed_coin_images = preprocess_images(coin_images, points_contrast_stretching, gaussian_kernel_size, gaussian_kernel_sigma);
+
         auto start = std::chrono::high_resolution_clock::now();
 
-        // convert to BGR to draw colored bbox
-        cv::Mat img_3ch;
-        cv::cvtColor(img, img_3ch, cv::COLOR_GRAY2BGR);
+        // list of detected coins with reference to the whole test image
+        std::vector<DetectedCoin> coins_found;     // center, radius, confidence, class
+        coins_found = detect_all_coins(preprocessed_coin_images, coins_classes, preprocessed_dataset_images, rotations, matching_threshold, circles, coin_image_margin);
 
-        std::vector<DetectedCoin> positions_found;     // center, radius, confidence, class
-
-        for (size_t i = 0; i < coins_classes.size(); i++) {
-            for (const cv::Mat& template_img : preprocessed_dataset_images[i]) {
-
-                std::vector<cv::Mat> rotations = rotate_template(template_img, 10);
-                for (const cv::Mat& rotated_template : rotations) {
-
-                    cv::Mat result;
-                    //Methods available for template matching: cv::TM_CCOEFF, cv::TM_CCOEFF_NORMED, cv::TM_CCORR, cv::TM_CCORR_NORMED, cv::TM_SQDIFF, cv::TM_SQDIFF_NORMED
-                    cv::matchTemplate(img, rotated_template, result, cv::TM_CCOEFF_NORMED);
-
-                    std::vector<DetectedCoin> good_matches = get_positions_and_values_above_threshold(result, 0.6, template_img.cols, coins_classes[i]);
-
-                    for (const auto& match : good_matches) {
-
-                        // check if it has been already found
-                        if (!add_near_point(match, positions_found, match.radius)) {
-                            for(const auto& d : positions_found) {
-                                std::cout << "current point: " << d.center << " with confidence: " << d.confidence << std::endl;
-                            }
-                            std::cout << "Added " << coins_classes[i] << " at location: " << match.center << " with confidence: " << match.confidence << std::endl;
-                    }
-                }
-            }
-            }
-        }
-
-        // Draw all labels
-        for (const auto& d : positions_found) {
-            cv::circle(img_3ch, d.center, d.radius, cv::Scalar(0, 255, 0), 5);
-            cv::putText(img_3ch, d.class_name, cv::Point(d.center.x, d.center.y - 10), cv::FONT_HERSHEY_SIMPLEX, 3, cv::Scalar(0, 255, 0), 5);
-        }
+        // Store predicted labels for each image
+        predicted_labels.push_back(coins_found);
 
         // Measure the time taken for template matching
         auto end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> elapsed = end - start;
-        std::cout << "Elapsed time: " << elapsed.count() << " seconds" << std::endl;
+        std::cout << "Image " << i << " / " << number_of_images-1 << " : " << elapsed.count() << " seconds" << std::endl;
+    }
 
-        cv::imshow("Template Matching", img_3ch);
-        std::cout << "number of matches: " << positions_found.size() << std::endl;
+
+    // ----- PERFORMANCE METRICS AND RESULTS (test images) -----
+    std::vector<std::vector<DetectedCoin>> ground_truth_labels = get_labels_from_folder(test_labels_path, downsampling_factor);
+
+    for (size_t i = 0; i < number_of_images; i++) {
+
+        std::cout << "######### Results for image " << i << " #########" << std::endl;
+
+        cv::Point2f score = compute_mIoU_and_accuracy(ground_truth_labels[i], predicted_labels[i]);
+        std::cout << "mIoU: " << score.x << std::endl;
+        std::cout << "Accuracy: " << score.y * 100 << "%" << std::endl;
+
+        float true_sum = sum_coins(ground_truth_labels[i]);
+        float pred_sum = sum_coins(predicted_labels[i]);
+        float diff_sum = cv::abs(true_sum - pred_sum);
+        std::ostringstream out; // to not overwrite cout
+        out << std::fixed << std::setprecision(2);  // fix at 2 decimals
+        out << "True sum of coins: " << true_sum << " Predicted sum of coins: " << pred_sum << " Difference: " << diff_sum << std::endl;
+        std::cout << out.str(); 
+
+        // Draw circles
+        for (size_t j = 0; j < predicted_circles[i].size(); j++) {
+            cv::Vec3f& c = predicted_circles[i][j];
+            cv::Point center(cvRound(c[0]), cvRound(c[1]));
+            int radius = cvRound(c[2]);
+
+            cv::circle(test_images_colour[i], center, radius, cv::Scalar(255, 0, 255), static_cast<int>(3*downsampling_factor), cv::LINE_AA);
+            cv::putText(test_images_colour[i], std::to_string(j), cv::Point(center.x-radius/2, center.y+radius/2), cv::FONT_HERSHEY_SIMPLEX, 1.5*downsampling_factor, cv::Scalar(255, 0, 255), static_cast<int>(3*downsampling_factor));
+        }
+        // Draw ground truth coins
+        for (const auto& coin: ground_truth_labels[i]) {
+            cv::circle(test_images_colour[i], coin.center, coin.radius, cv::Scalar(255, 255, 255), static_cast<int>(5*downsampling_factor), cv::LINE_AA);
+            cv::putText(test_images_colour[i], coin.class_name, cv::Point(coin.center.x-coin.radius/2, coin.center.y-coin.radius/2), cv::FONT_HERSHEY_SIMPLEX, 1.5*downsampling_factor, cv::Scalar(255, 255, 255), static_cast<int>(5*downsampling_factor));
+        }
+        // Draw predicted coins
+        for (const auto& coin: predicted_labels[i]) {
+            cv::circle(test_images_colour[i], coin.center, coin.radius, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor), cv::LINE_AA);
+            cv::putText(test_images_colour[i], coin.class_name, cv::Point(coin.center.x-coin.radius/2, coin.center.y+coin.radius/2), cv::FONT_HERSHEY_SIMPLEX, 1.5*downsampling_factor, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor));
+        }
+        cv::namedWindow("Results", cv::WINDOW_KEEPRATIO);
+        cv::imshow("Results", test_images_colour[i]);
         cv::waitKey(0);
     }
 
-    // ----- HOUGH LINES (test) -----
-    // ----- COMPUTE OUTPUT (test) -----
 
-    // ----- PERFORMANCE METRICS (test) -----
-    
+    // ----- TEMPLATE MATCHING (test videos) -----
+
+    // ----- PERFORMANCE METRICS AND RESULTS (test videos) -----
+
     return 0;
 }
 

@@ -1,83 +1,168 @@
 #include "main.h"
 
-std::vector<std::string> filenames;
-int clipLimit = 2;
-int maxClipLimit = 10;
-// int tileGridSize = 8;
-// int maxTileGridSize = 30;
+std::vector<cv::Mat> images;
+int slider = 22;
+int maxSlider = 255;
 
 
-void on_trackbar(int pos, void* userdata) {
-    std::vector<cv::Mat> concatenated_images;
-    int ref_width = 500;
+// void on_trackbar(int pos, void* userdata) {
+    // std::vector<cv::Mat> concatenated_images;
+    // int ref_width = 700;
+    // int ref_height = 700;
 
     // aggiorna tutti i parametri delle trackbar
-    clipLimit = cv::getTrackbarPos("Clip Limit", "process");
-    // tileGridSize = cv::getTrackbarPos("Tile Grid Size", "process");
+    // slider = cv::getTrackbarPos("slider", "process");
 
-    for (const std::string& filename : filenames) {
-        cv::Mat image = cv::imread(filename, cv::IMREAD_GRAYSCALE);
+    // for (cv::Mat image : images) {
+    //     cv::Mat processed_image = image.clone();
+    //     cv::cvtColor(processed_image, processed_image, cv::COLOR_BGR2HSV);
+
+    //     // processa
+    //     auto start = std::chrono::high_resolution_clock::now();
+
+    //     // Apply a threshold on the saturation
+    //     cv::Mat mask;
+    //     cv::inRange(processed_image, cv::Scalar(0, 40, 0), cv::Scalar(180, 255, 255), mask);
+
+    //     // Convert to grayscale and blur
+    //     cv::Mat gray;
+    //     if (mask.channels() == 3) {
+    //         cv::cvtColor(mask, gray, cv::COLOR_BGR2GRAY);
+    //     } else {
+    //         gray = mask.clone();
+    //     }
+    //     cv::GaussianBlur(gray, gray, cv::Size(9, 9), 2, 2);
+
+    //     // Find circles using Hough Transform
+    //     std::vector<cv::Vec3f> circles;
+    //     cv::HoughCircles(gray, circles, cv::HOUGH_GRADIENT,
+    //                     1,     // dp
+    //                     110,   // minDist
+    //                     100, 30, // param1, param2
+    //                     95, 210); // minRadius, maxRadius
+
+    //     std::cout << "Found " << circles.size() << " circles in the image." << std::endl;
+
+    //     // Sort circles by radius in ascending order
+    //     std::sort(circles.begin(), circles.end(),
+    //             [](const cv::Vec3f& a, const cv::Vec3f& b) { return a[2] < b[2]; });
+
+    //     // Print radius of the circles
+    //     for (size_t i = 0; i < circles.size(); i++) {
+    //         std::cout << "Circle " << i << ": radius = " << circles[i][2] << std::endl;
+    //     }
+
+    //     // Draw circles on the original image
+    //     cv::cvtColor(processed_image, processed_image, cv::COLOR_HSV2BGR);
+    //     for (const auto& c : circles) {
+    //         cv::Point center(cvRound(c[0]), cvRound(c[1]));
+    //         int radius = cvRound(c[2]);
+
+    //         cv::circle(processed_image, center, 1, cv::Scalar(0, 100, 100), 3, cv::LINE_AA);
+    //         cv::circle(processed_image, center, radius, cv::Scalar(255, 0, 255), 3, cv::LINE_AA);
+    //     }
+
+    //     auto end = std::chrono::high_resolution_clock::now();
+    //     std::chrono::duration<double> elapsed = end - start;
+    //     std::cout << "Elapsed time: " << elapsed.count() << " seconds" << std::endl;
+
+    //     // resize images for concatenation
+    //     cv::resize(image, image, cv::Size(ref_width, ref_height));
+    //     cv::resize(processed_image, processed_image, cv::Size(ref_width, ref_height));
+
+    //     // concatenate horizontally
+    //     cv::Mat concatenatedH;
+    //     cv::hconcat(image, processed_image, concatenatedH);
+    //     concatenated_images.push_back(concatenatedH);
+    // }
+
+    // // concatenate vertically
+    // cv::Mat concatenatedV;
+    // cv::vconcat(concatenated_images, concatenatedV);
+    // cv::imshow("process", concatenatedV);
+// }
+
+int main(int argc, const char* argv[]) {
+
+    std::vector<std::string> filenames = {"../test/images/IMG_24.jpg"};
+    cv::namedWindow("process", cv::WINDOW_KEEPRATIO);
+
+    // Load images
+    for (const auto& filename : filenames) {
+        cv::Mat image = cv::imread(filename, cv::IMREAD_COLOR);
+        if (!image.empty()) {
+            images.push_back(image);
+        }
+    }
+
+    // // Create trackbars
+    // cv::createTrackbar("slider", "process", NULL, maxSlider, on_trackbar);
+
+    // // Initial call to display image
+    // on_trackbar(0, 0);
+
+    // cv::waitKey(0);
+
+    // std::vector<cv::Mat> concatenated_images;
+    // int ref_width = 700;
+    // int ref_height = 700;
+
+    for (cv::Mat image : images) {
         cv::Mat processed_image = image.clone();
-        
+        cv::cvtColor(processed_image, processed_image, cv::COLOR_BGR2HSV);
+        const float downsampling_factor = 1;
+
         // processa
         auto start = std::chrono::high_resolution_clock::now();
 
-        std::vector<cv::Point2f> points_contrast_stretching = {cv::Point2f(0,0), cv::Point2f(0.9*255, 255), cv::Point2f(255, 255)};
-        processed_image = contrast_stretching(processed_image, points_contrast_stretching);
-        cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(3, cv::Size(15, 15));
-        clahe->apply(processed_image, processed_image);
-        cv::GaussianBlur(processed_image, processed_image, cv::Size(3,3), 1.0);
+        std::vector<cv::Vec3f> circles = get_circles_positions(processed_image, downsampling_factor);
+
+        cv::cvtColor(processed_image, processed_image, cv::COLOR_HSV2BGR);
+
+        std::cout << "Found " << circles.size() << " circles in the image." << std::endl;
+
+        // Print radius of the circles
+        for (size_t i = 0; i < circles.size(); i++) {
+            std::cout << "Circle " << i << ": radius = " << circles[i][2] << std::endl;
+        }
+
+        // Draw circles on the original image
+        for (const auto& c : circles) {
+            cv::Point center(cvRound(c[0]), cvRound(c[1]));
+            int radius = cvRound(c[2]);
+
+            cv::circle(processed_image, center, 1, cv::Scalar(0, 100, 100), 3, cv::LINE_AA);
+            cv::circle(processed_image, center, radius, cv::Scalar(255, 0, 255), 3, cv::LINE_AA);
+        }
+
+        std::vector<cv::Mat> coin_images = split_image_by_coins(processed_image, circles, 25);
+
+        for (size_t i = 0; i < coin_images.size(); i++) {
+            cv::imshow("Coin " + std::to_string(i), coin_images[i]);
+            cv::waitKey(0);
+        }
 
         auto end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> elapsed = end - start;
         std::cout << "Elapsed time: " << elapsed.count() << " seconds" << std::endl;
 
-        // std::vector<cv::Point2f> points_contrast_stretching = {cv::Point2f(0,0), cv::Point2f(0.9*255, 255), cv::Point2f(255, 255)};
-        // processed_image = contrast_stretching(processed_image, points_contrast_stretching);
-        // cv::Mat mask;
-        // cv::threshold(processed_image, mask, 0, 255, cv::THRESH_BINARY_INV | cv::THRESH_OTSU); // white coins
-        // cv::Mat kernel = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5));
-        // cv::dilate(mask, mask, kernel);
-        // cv::erode(mask, mask, kernel);
-        // processed_image = mask;
+        // // resize images for concatenation
+        // cv::resize(image, image, cv::Size(ref_width, ref_height));
+        // cv::resize(processed_image, processed_image, cv::Size(ref_width, ref_height));
 
-        // std::vector<cv::Point2f> points_contrast_stretching = {cv::Point2f(0,0), cv::Point2f(0.8*255, 255), cv::Point2f(255, 255)};
-        // processed_image = contrast_stretching(processed_image, points_contrast_stretching);
-        // cv::GaussianBlur(processed_image, processed_image, cv::Size(5,5), sigma/100.0);
-
-        // resize images for concatenation
-        cv::resize(image, image, cv::Size(ref_width, static_cast<int>(image.rows * ref_width / static_cast<float>(image.cols))));
-        cv::resize(processed_image, processed_image, cv::Size(ref_width, static_cast<int>(processed_image.rows * ref_width / static_cast<float>(processed_image.cols))));
-
-        // concatenate horizontally
-        cv::Mat concatenatedH;
-        cv::hconcat(image, processed_image, concatenatedH);
-        concatenated_images.push_back(concatenatedH);
+        // // concatenate horizontally
+        // cv::Mat concatenatedH;
+        // cv::hconcat(image, processed_image, concatenatedH);
+        // concatenated_images.push_back(concatenatedH);
     }
 
-    // concatenate vertically
-    cv::Mat concatenatedV;
-    cv::vconcat(concatenated_images, concatenatedV);
-    cv::imshow("process", concatenatedV);
-}
+    // // concatenate vertically
+    // cv::Mat concatenatedV;
+    // cv::vconcat(concatenated_images, concatenatedV);
+    // cv::imshow("process", concatenatedV);
 
-int main(int argc, const char* argv[]) {
+    // cv::waitKey(0);
 
-    filenames = {"../template/images/10_CENT/IMG_22_temp.jpg", "../test/images/IMG_24.jpg"};
-    cv::namedWindow("process", cv::WINDOW_KEEPRATIO);
-        
-    // Create trackbars
-    cv::createTrackbar("Clip Limit", "process", NULL, maxClipLimit, on_trackbar);
-    // cv::createTrackbar("Tile Grid Size", "process", NULL, maxTileGridSize, on_trackbar);
-
-    // set initial position
-    cv::setTrackbarPos("Clip Limit", "process", clipLimit);
-    // cv::setTrackbarPos("Tile Grid Size", "process", tileGridSize);
-
-    // Initial call to display image
-    on_trackbar(0, 0);
-
-    cv::waitKey(0);
 
     return 0;
 }
