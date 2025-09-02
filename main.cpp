@@ -3,14 +3,14 @@
 int main(int argc, const char* argv[])
 {
     const std::vector<std::string> coins_classes = {
-        "1_CENT", "2_CENT", "10_CENT", "20_CENT", "50_CENT", "1_EURO", "2_EURO"
+        "EUR_001", "EUR_002", "EUR_010", "EUR_020", "EUR_050", "EUR_100", "EUR_200"
     };
 
     const std::vector<std::string> dataset_images_paths= {
-        "../template/images/1_CENT", "../template/images/2_CENT", "../template/images/10_CENT", "../template/images/20_CENT", "../template/images/50_CENT", "../template/images/1_EURO", "../template/images/2_EURO"
+        "../template/images/EUR_001", "../template/images/EUR_002", "../template/images/EUR_010", "../template/images/EUR_020", "../template/images/EUR_050", "../template/images/EUR_100", "../template/images/EUR_200"
     };
     const std::vector<std::string> dataset_labels_paths= {
-        "../dataset/labels/1_CENT", "../dataset/labels/2_CENT", "../dataset/labels/10_CENT", "../dataset/labels/20_CENT", "../dataset/labels/50_CENT", "../dataset/labels/1_EURO", "../dataset/labels/2_EURO"
+        "../dataset/labels/EUR_001", "../dataset/labels/EUR_002", "../dataset/labels/EUR_010", "../dataset/labels/EUR_020", "../dataset/labels/EUR_050", "../dataset/labels/EUR_100", "../dataset/labels/EUR_200"
     };
 
     const std::string test_images_path = "../test/images/";
@@ -115,7 +115,7 @@ int main(int argc, const char* argv[])
         frame_indexes[4] = 532;
         ground_truth_labels = get_labels_from_folder(test_videos_labels_path_2, downsampling_factor);
     }
-    int sum = 0;
+    float sum = 0;
     int frame_count = 0;
     std::vector<cv::Mat> test_images_colour; // array that will contain the frames to be labeled for the performance metrics
 
@@ -161,15 +161,9 @@ int main(int argc, const char* argv[])
                 for (const auto& d : last_coins_found) {
                     cv::circle(original_frame, d.center, d.radius, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor), cv::LINE_AA);
                     cv::putText(original_frame, d.class_name, cv::Point(d.center.x, d.center.y - 10), cv::FONT_HERSHEY_SIMPLEX, 2*downsampling_factor, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor));
-                    if (d.class_name == "1_EURO") sum += 100;
-                    else if (d.class_name == "2_EURO") sum += 200;
-                    else
-                    sum += std::stoi(d.class_name.substr(0, d.class_name.find('_'))); // estraggo il valore numerico dal nome della classe
+                    sum += std::stof(d.class_name.substr(4)) / 100.0f; // extract last 3 char from class_name and cast to float
                 }
-                std::ostringstream oss;
-                oss << sum / 100 << "." << std::setw(2) << std::setfill('0') << sum % 100;
-                std::string text = oss.str();
-                cv::putText(original_frame, "Sum: " + text + " euros", cv::Point(50, 100), cv::FONT_HERSHEY_SIMPLEX, 3 * downsampling_factor, cv::Scalar(0, 0, 255), static_cast<int>(5 * downsampling_factor));
+                cv::putText(original_frame, "Sum: " + std::to_string(sum) + " euro", cv::Point(50, 100), cv::FONT_HERSHEY_SIMPLEX, 3 * downsampling_factor, cv::Scalar(0, 0, 255), static_cast<int>(5 * downsampling_factor));
                 // show current frame with last coins found
                 cv::imshow("Template Matching", original_frame);
                         //add labels found to predicted_circles
@@ -328,15 +322,10 @@ int main(int argc, const char* argv[])
         for (const auto& d : coins_found) {
             cv::circle(original_frame, d.center, d.radius, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor), cv::LINE_AA);
             cv::putText(original_frame, d.class_name, cv::Point(d.center.x, d.center.y - 10), cv::FONT_HERSHEY_SIMPLEX, 2*downsampling_factor, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor));
-            if (d.class_name == "1_EURO") sum += 100;
-            else if (d.class_name == "2_EURO") sum += 200;
-            else
-            sum += std::stoi(d.class_name.substr(0, d.class_name.find('_'))); // estraggo il valore numerico dal nome della classe
+            sum += std::stof(d.class_name.substr(4)) / 100.0f; // extract last 3 char from class_name and cast to float
+
         }
-        std::ostringstream oss;
-        oss << sum / 100 << "." << std::setw(2) << std::setfill('0') << sum % 100;
-        std::string text = oss.str();
-        cv::putText(original_frame, "Sum: " + text + " euros", cv::Point(50, 100), cv::FONT_HERSHEY_SIMPLEX, 3 * downsampling_factor, cv::Scalar(0, 0, 255), static_cast<int>(5 * downsampling_factor));
+        cv::putText(original_frame, "Sum: " + std::to_string(sum) + " euro", cv::Point(50, 100), cv::FONT_HERSHEY_SIMPLEX, 3 * downsampling_factor, cv::Scalar(0, 0, 255), static_cast<int>(5 * downsampling_factor));
         cv::imshow("Template Matching", original_frame);
         std::cout << "number of matches: " << coins_found.size() << std::endl;
         // cv::waitKey(0);
@@ -346,8 +335,6 @@ int main(int argc, const char* argv[])
 
     }
 
-    std::cout << "number of predicted labels: " << predicted_labels.size() << std::endl;
-    std::cout << "number of ground truth labels: " << ground_truth_labels.size() << std::endl;
     for (size_t i = 0; i < number_of_images; i++) {
 
         std::cout << "######### Results for image " << i << " #########" << std::endl;
