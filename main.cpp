@@ -80,8 +80,8 @@ int main(int argc, const char* argv[])
 
     // compute circles locations and split gray-scale test images in smaller images containing coins
     // then preprocess those images
-    cv::VideoCapture cap("../test/videos/video2.MOV"); //modify the video to open
-    int video = 2; // choose which video to use (1 or 2)
+    cv::VideoCapture cap("../test/videos/video1.MOV"); //modify the video to open
+    int video = 1; // choose which video to use (1 or 2)
     if (!cap.isOpened()) {
         std::cerr << "Errore: impossibile aprire il video!" << std::endl;
         return -1;
@@ -101,7 +101,7 @@ int main(int argc, const char* argv[])
     int frame_indexes[number_of_images];
 
     if (video == 1){
-        ground_truth_labels = get_labels_from_folder(test_videos_labels_path_1, downsampling_factor);
+        ground_truth_labels = get_labels_from_folder(test_videos_labels_path_1, 1.89f*downsampling_factor);
         frame_indexes[0] = 156;
         frame_indexes[1] = 250;
         frame_indexes[2] = 377;
@@ -113,7 +113,7 @@ int main(int argc, const char* argv[])
         frame_indexes[2] = 251;
         frame_indexes[3] = 332;
         frame_indexes[4] = 532;
-        ground_truth_labels = get_labels_from_folder(test_videos_labels_path_2, downsampling_factor);
+        ground_truth_labels = get_labels_from_folder(test_videos_labels_path_2, 1.89f*downsampling_factor);
     }
     float sum = 0;
     int frame_count = 0;
@@ -163,7 +163,13 @@ int main(int argc, const char* argv[])
                     cv::putText(original_frame, d.class_name, cv::Point(d.center.x, d.center.y - 10), cv::FONT_HERSHEY_SIMPLEX, 2*downsampling_factor, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor));
                     sum += std::stof(d.class_name.substr(4)) / 100.0f; // extract last 3 char from class_name and cast to float
                 }
-                cv::putText(original_frame, "Sum: " + std::to_string(sum) + " euro", cv::Point(50, 100), cv::FONT_HERSHEY_SIMPLEX, 3 * downsampling_factor, cv::Scalar(0, 0, 255), static_cast<int>(5 * downsampling_factor));
+                std::ostringstream out; // to not overwrite cout
+                out << std::fixed << std::setprecision(2);  // fix at 2 decimals
+                out << sum;
+                std::string sum_str = out.str();
+
+                cv::putText(original_frame, "Sum: " + sum_str + " euro", cv::Point(50, 100), cv::FONT_HERSHEY_SIMPLEX, 3 * downsampling_factor, cv::Scalar(0, 0, 255), static_cast<int>(5 * downsampling_factor));
+                cv::imshow("Template Matching", original_frame);
                 // show current frame with last coins found
                 cv::imshow("Template Matching", original_frame);
                         //add labels found to predicted_circles
@@ -325,7 +331,12 @@ int main(int argc, const char* argv[])
             sum += std::stof(d.class_name.substr(4)) / 100.0f; // extract last 3 char from class_name and cast to float
 
         }
-        cv::putText(original_frame, "Sum: " + std::to_string(sum) + " euro", cv::Point(50, 100), cv::FONT_HERSHEY_SIMPLEX, 3 * downsampling_factor, cv::Scalar(0, 0, 255), static_cast<int>(5 * downsampling_factor));
+        std::ostringstream out; // to not overwrite cout
+        out << std::fixed << std::setprecision(2);  // fix at 2 decimals
+        out << sum;
+        std::string sum_str = out.str();
+
+        cv::putText(original_frame, "Sum: " + sum_str + " euro", cv::Point(50, 100), cv::FONT_HERSHEY_SIMPLEX, 3 * downsampling_factor, cv::Scalar(0, 0, 255), static_cast<int>(5 * downsampling_factor));
         cv::imshow("Template Matching", original_frame);
         std::cout << "number of matches: " << coins_found.size() << std::endl;
         // cv::waitKey(0);
@@ -345,9 +356,6 @@ int main(int argc, const char* argv[])
 
         float true_sum = sum_coins(ground_truth_labels[i]);
         std::cout << "True sum of coins: " << true_sum << std::endl;
-        for (const auto& coin : predicted_labels[i]) {
-            std::cout << coin.class_name << " ";
-        }
         float pred_sum = sum_coins(predicted_labels[i]);
         std::cout << "Predicted sum of coins: " << pred_sum << std::endl;
         float diff_sum = cv::abs(true_sum - pred_sum);
