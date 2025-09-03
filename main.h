@@ -5,6 +5,7 @@
 #include <string>
 #include <tuple>
 #include <filesystem>
+#include <dirent.h> 
 #include <fstream>
 #include <chrono>   // time measurement
 #include <iomanip> // used for std::setprecision
@@ -14,15 +15,6 @@
 
 using Detection = std::tuple<cv::Point, double>;
 
-// ----- FILE MANAGEMENT -----
-/**
- * @brief Returns a vector of file paths in the given directory.
- * 
- * @param folder path to the directory
- * 
- * @return list of file paths
- */
-std::vector<std::string> get_file_names(const std::string& folder);
 
 /**
  * @brief Loads images from a folder

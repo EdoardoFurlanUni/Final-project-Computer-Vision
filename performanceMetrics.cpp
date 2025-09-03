@@ -3,14 +3,21 @@
 std::vector<std::vector<DetectedCoin>> get_labels_from_folder(const std::string& folder_path, const float downsampling_factor) {
     std::vector<std::vector<DetectedCoin>> all_labels;
 
-    for (const auto& entry : std::filesystem::directory_iterator(folder_path)) {
+    DIR* dir = opendir(folder_path.c_str());
 
-        if (entry.is_regular_file() && entry.path().extension() == ".txt") {
+    struct dirent* entry;
+    while ((entry = readdir(dir)) != nullptr) {
+        std::string filename = entry->d_name;
+
+        if (filename.length() < 4) continue;
+
+        // if is file .txt
+        if (filename.substr(filename.find_last_of(".") + 1) == "txt") {
 
             std::vector<DetectedCoin> labels;
 
             // read line by line
-            std::ifstream file(entry.path());
+            std::ifstream file(folder_path + "/" + filename);
             std::string line;
             while (std::getline(file, line)) {
 
@@ -22,6 +29,7 @@ std::vector<std::vector<DetectedCoin>> get_labels_from_folder(const std::string&
                 >> c1 >> coin.center.x           // '(' // x
                 >> c2 >> coin.center.y           // ',' // y
                 >> c3 >> coin.radius) {          // ')' // r
+                    std::cout << "Parsed coin: " << coin.class_name << " " << coin.center.x << " " << coin.center.y << " " << coin.radius << std::endl;
 
                     // Ignore line containing the sum
                     if (coin.class_name == "SUM") {
@@ -32,7 +40,7 @@ std::vector<std::vector<DetectedCoin>> get_labels_from_folder(const std::string&
                     coin.center.y = static_cast<int>(coin.center.y * downsampling_factor);
                     coin.radius = static_cast<int>(coin.radius * downsampling_factor);
                     coin.confidence = 1.0; // ground truth confidence
-                    
+
                     labels.push_back(coin);
                 }
             }
@@ -40,6 +48,8 @@ std::vector<std::vector<DetectedCoin>> get_labels_from_folder(const std::string&
             all_labels.push_back(labels);
         }
     }
+    closedir(dir);
+
     return all_labels;
 }
 

@@ -1,38 +1,25 @@
 #include "main.h"
 
-std::vector<std::string> get_file_names(const std::string& folder) {
-    std::vector<std::string> filenames;
-
-    try {
-        for (const auto& entry : std::filesystem::directory_iterator(folder)) {
-            // verify that is an image
-            if (entry.is_regular_file()) {
-                std::string extension = entry.path().extension().string();
-                if (extension == ".jpg" || extension == ".jpeg" || extension == ".png") {
-                    filenames.push_back(entry.path().string());
-                }
-            }
-        }
-    } catch (const std::filesystem::filesystem_error& e) {
-        std::cerr << "Filesystem error: " << e.what() << std::endl;
-    }
-
-    return filenames;
-}
-
 std::vector<cv::Mat> load_images_from_folder(const std::string& folder, int flags) {
     std::vector<cv::Mat> images_in_folder;
+   
+    DIR* dir = opendir(folder.c_str());
 
-    std::vector<std::string> file_paths = get_file_names(folder);
+    struct dirent* entry;
+    while ((entry = readdir(dir)) != nullptr) {
+        std::string filename = entry->d_name;
 
-    for (const std::string& path : file_paths) {
-        cv::Mat img = cv::imread(path, flags);
+        if (filename == "." || filename == "..") continue;
+
+        std::string full_path = folder + "/" + filename;
+        cv::Mat img = cv::imread(full_path, flags);
         if (!img.empty()) {
             images_in_folder.push_back(img);
         } else {
-            std::cerr << "Impossible to read: " << path << std::endl;
+            std::cerr << "Error loading: " << full_path << std::endl;
         }
     }
+    closedir(dir);
 
     return images_in_folder;
 }
