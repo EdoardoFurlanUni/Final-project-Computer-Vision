@@ -259,3 +259,5 @@ std::vector<DetectedCoin> detect_all_coins(const std::vector<cv::Mat>& preproces
 
     return detected_coins;
 }
+
+

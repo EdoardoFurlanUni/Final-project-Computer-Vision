@@ -22,3 +22,9 @@
 prova_preprocessing
 main
 build
+
+#ignore output videos
+video2_out.avi
+output.MOV
+output2.avi
+output1.avi
