@@ -211,6 +211,15 @@ std::vector<DetectedCoin> detect_all_coins(const std::vector<cv::Mat>& preproces
 // ----- PERFORMANCE METRICS -----
 
 /**
+ * @brief Displays a progress bar in the console
+ *
+ * @param current current progress
+ * @param total total value for completion
+ * @param bar_width width of the progress bar
+ */
+void progress_bar(int current, int total, int bar_width);
+
+/**
  * @brief Gets the labels from a folder containing text files
  *
  * @param folder_path path to the folder containing the label files

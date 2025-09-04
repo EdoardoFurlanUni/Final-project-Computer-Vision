@@ -22,11 +22,6 @@ int main(int argc, const char* argv[])
     };
 
 
-    double mIoUB = {0}; // the mean intersection of union computed over all the coins
-    std::array<double, 8> accuracy = {0}; // an object is considered to be recognized only if its IoU is greater than 50%
-    double sum_accuracy = 0; // average distance by the true sum in the images
-
-
     // ----- LOAD DATASET IMAGES -----
     const float downsampling_factor = 0.75;
 
@@ -131,14 +126,14 @@ int main(int argc, const char* argv[])
         std::string path_video = out1.str();
         cv::VideoCapture cap(path_video);
         int video = (input_matching == "video1") ? 1 : 2;
-;
+
         if (!cap.isOpened()) {
             std::cerr << "Errore: impossibile aprire il video!" << std::endl;
             return -1;
         }
 
         int fps = cap.get(cv::CAP_PROP_FPS);
-        cv::Size frameSize(cvRound(0.5f*downsampling_factor*1.89f*cap.get(cv::CAP_PROP_FRAME_WIDTH)), cvRound(0.5f*downsampling_factor*1.89f*cap.get(cv::CAP_PROP_FRAME_HEIGHT)));
+        cv::Size frameSize(cvRound(0.3f*downsampling_factor*1.89f*cap.get(cv::CAP_PROP_FRAME_WIDTH)), cvRound(0.3f*downsampling_factor*1.89f*cap.get(cv::CAP_PROP_FRAME_HEIGHT)));
         std::ostringstream out2;
         out2 << "../test/videos/output" << video << ".avi";
         std::string output_path = out2.str();
@@ -177,10 +172,18 @@ int main(int argc, const char* argv[])
 
         cv::namedWindow("Template Matching", cv::WINDOW_KEEPRATIO);
 
+        std::cout << "Press ESC to exit" << std::endl;
+
         while (true) {
             cap >> original_frame;
             frame_count++;
             if (original_frame.empty()) break;
+
+            progress_bar(frame_count, static_cast<int>(cap.get(cv::CAP_PROP_FRAME_COUNT)), 100);
+
+            // if (frame_count < 218) {
+            //     continue;
+            // }
 
             // upscale and downsample to obtain the same size for coins
             cv::resize(original_frame, original_frame, cv::Size(), downsampling_factor*1.89f, downsampling_factor*1.89f);
@@ -209,23 +212,23 @@ int main(int argc, const char* argv[])
                 const float different_threshold = 0.83f;
                 const float similar_threshold = 0.845f;
 
-                if (similarity_timer >= 3) { // every 3 similar analyze the frame
+                if (similarity_timer >= 10) { // every 3 similar analyze the frame
                     similarity_timer = 0;
                     similarity = similar_threshold - 0.001f; // to force analysis
                 }
 
-                std::cout << "Similarity between frames: " << similarity;
+                // std::cout << "Similarity between frames: " << similarity;
                 if (similarity < different_threshold) {
                     similarity_timer = 0;
-                    std::cout << " different" << std::endl;
+                    // std::cout << " different" << std::endl;
                 }
                 else if (similarity > similar_threshold) {
                     similarity_timer++;
-                    std::cout << " similar" << std::endl;
+                    // std::cout << " similar" << std::endl;
                 }
                 else {
                     similarity_timer = 0;
-                    std::cout << " uncertain" << std::endl;
+                    // std::cout << " uncertain" << std::endl;
                 }
                 // if similarity is in this range, use last coins found
                 if (similarity < different_threshold || similarity > similar_threshold) {
@@ -243,7 +246,7 @@ int main(int argc, const char* argv[])
                     cv::putText(original_frame, "Sum: " + sum_str + " euro", cv::Point(50, 100), cv::FONT_HERSHEY_SIMPLEX, 3 * downsampling_factor, cv::Scalar(0, 0, 255), static_cast<int>(5 * downsampling_factor));
             
                     // save frame for output video
-                    cv::resize(original_frame, original_frame, cv::Size(), 0.5, 0.5); // rescale to reduce video dimension
+                    cv::resize(original_frame, original_frame, cv::Size(), 0.3, 0.3); // rescale to reduce video dimension
                     writer.write(original_frame);
                     // show current frame with last coins found
                     cv::imshow("Template Matching", original_frame);
@@ -322,10 +325,11 @@ int main(int argc, const char* argv[])
             cv::putText(original_frame, "Sum: " + sum_str + " euro", cv::Point(50, 100), cv::FONT_HERSHEY_SIMPLEX, 3 * downsampling_factor, cv::Scalar(0, 0, 255), static_cast<int>(5 * downsampling_factor));
         
             // save frame for output video
-            cv::resize(original_frame, original_frame, cv::Size(), 0.5, 0.5); // rescale to reduce video dimension
+            cv::resize(original_frame, original_frame, cv::Size(), 0.3, 0.3); // rescale to reduce video dimension
             writer.write(original_frame);
 
             cv::imshow("Template Matching", original_frame);
+            // cv::waitKey(0);
             // Esc per uscire
             char c = (char)cv::waitKey(1);
             if (c == 27) break;
@@ -337,7 +341,7 @@ int main(int argc, const char* argv[])
 
         cv::VideoCapture capOut(output_path);
         if (!capOut.isOpened()) {
-            std::cerr << "Errore apertura video output!" << std::endl;
+            std::cerr << "Error opening output video!" << std::endl;
             return -1;
         }
 
@@ -354,7 +358,7 @@ int main(int argc, const char* argv[])
         cv::destroyAllWindows();
     }
     else{
-        std::cerr << "Input non valido: " << input_matching 
+        std::cerr << "Non valid input: " << input_matching 
                 << ". Use video1, video2 or images." << std::endl;
         return 1;
     }
@@ -369,14 +373,12 @@ int main(int argc, const char* argv[])
         std::cout << "Accuracy: " << score.y * 100 << "%" << std::endl;
 
         float true_sum = sum_coins(ground_truth_labels[i]);
-        std::cout << "True sum of coins: " << true_sum << std::endl;
         float pred_sum = sum_coins(predicted_labels[i]);
-        std::cout << "Predicted sum of coins: " << pred_sum << std::endl;
         float diff_sum = cv::abs(true_sum - pred_sum);
         std::ostringstream out; // to not overwrite cout
         out << std::fixed << std::setprecision(2);  // fix at 2 decimals
-        out << "True sum of coins: " << true_sum << " Predicted sum of coins: " << pred_sum << " Difference: " << diff_sum << std::endl;
-        std::cout << out.str(); 
+        out << "True sum of coins: " << true_sum << ", predicted sum of coins: " << pred_sum << ", difference: " << diff_sum << std::endl;
+        std::cout << out.str();
 
         // Draw circles
         for (size_t j = 0; j < predicted_circles[i].size(); j++) {
@@ -397,10 +399,13 @@ int main(int argc, const char* argv[])
             cv::circle(test_images_colour[i], coin.center, coin.radius, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor), cv::LINE_AA);
             cv::putText(test_images_colour[i], coin.class_name, cv::Point(coin.center.x-coin.radius/2, coin.center.y+coin.radius/2), cv::FONT_HERSHEY_SIMPLEX, 1.5*downsampling_factor, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor));
         }
+
         cv::namedWindow("Results", cv::WINDOW_KEEPRATIO);
         cv::imshow("Results", test_images_colour[i]);
+        std::cout << "Press any key to continue..." << std::endl;
         cv::waitKey(0);
     }
+
     return 0;
 }
 

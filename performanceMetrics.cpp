@@ -1,5 +1,25 @@
 #include "main.h"
 
+void progress_bar(int current, int total, int bar_width) {
+    float progress = static_cast<float>(current) / total;
+    int pos = static_cast<int>(bar_width * progress);
+
+    std::ostringstream out; // to not overwrite cout
+    out << std::fixed << std::setprecision(2);  // fix at 2 decimals
+    out << "[";
+    for (int i = 0; i < bar_width; ++i) {
+        if (i < pos) out << "=";
+        else if (i == pos) out << ">";
+        else out << " ";
+    }
+    out << "] " << progress * 100.0f << " %\r";
+    std::cout << out.str();
+    std::cout.flush();
+    if (current == total) {
+        std::cout << std::endl;
+    }
+}
+
 std::vector<std::vector<DetectedCoin>> get_labels_from_folder(const std::string& folder_path, const float downsampling_factor) {
     std::vector<std::vector<DetectedCoin>> all_labels;
 
@@ -29,7 +49,6 @@ std::vector<std::vector<DetectedCoin>> get_labels_from_folder(const std::string&
                 >> c1 >> coin.center.x           // '(' // x
                 >> c2 >> coin.center.y           // ',' // y
                 >> c3 >> coin.radius) {          // ')' // r
-                    std::cout << "Parsed coin: " << coin.class_name << " " << coin.center.x << " " << coin.center.y << " " << coin.radius << std::endl;
 
                     // Ignore line containing the sum
                     if (coin.class_name == "SUM") {

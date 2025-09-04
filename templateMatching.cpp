@@ -2,77 +2,81 @@
 
 std::vector<cv::Vec3f> get_circles_positions(const cv::Mat& I, const float downsampling_factor) {
     std::vector<cv::Vec3f> circles;
-    cv::Mat mask;
 
-    cv::Mat imgLab;
-    cv::cvtColor(I, imgLab, cv::COLOR_BGR2Lab);
+    // ----- first processing to find edges based on local variance -----
+    cv::Mat edges;
+    // Calcolo I^2
+    cv::Mat I_gray_f;
+    cv::cvtColor(I, I_gray_f, cv::COLOR_BGR2GRAY);
+    I_gray_f.convertTo(I_gray_f, CV_32F);
+    cv::Mat I_gray_sq = I_gray_f.mul(I_gray_f);
 
-    // Split nei canali
-    cv::Mat mask_lab;
-    std::vector<cv::Mat> lab_planes(3);
-    cv::split(imgLab, lab_planes);
+    // Media locale con finestra (es. 15x15)
+    cv::Mat mean, mean_sq;
+    boxFilter(I_gray_f, mean, -1, cv::Size(15,15));
+    boxFilter(I_gray_sq, mean_sq, -1, cv::Size(15,15));
+    // Varianza locale = E[x^2] - (E[x])^2
+    cv::Mat var = mean_sq - mean.mul(mean);
+    // Normalizza per visualizzazione
+    cv::Mat var_norm;
+    cv::normalize(var, var_norm, 0, 255, cv::NORM_MINMAX, CV_8U);
+    // Threshold per mascherare aree "omogenee"
+    cv::threshold(var_norm, edges, 30, 255, cv::THRESH_BINARY);
+    // sperimenta con la soglia (dipende dall'immagine)
 
-    cv::Mat L = lab_planes[0];  // Lightness
-    cv::Mat a = lab_planes[1];  // Green ↔ Red
-    cv::Mat b = lab_planes[2];  // Blue ↔ Yellow
+    // cv::namedWindow("Local variance", cv::WINDOW_KEEPRATIO);
+    // cv::namedWindow("High local variance (probable coins)", cv::WINDOW_KEEPRATIO);
+    // cv::imshow("Local variance", var_norm);
+    // cv::imshow("High local variance (probable coins)", edges);
 
-    //set a threshold in Lab format
-    cv::inRange(a, 150, 255, a);
-    cv::inRange(b, 138, 255, b);
-    cv::bitwise_or(a, b, mask_lab); 
-
-    // Morphological operations
-    // Kernel definition for erosion
-    cv::Mat kernel = cv::getStructuringElement(
-        cv::MORPH_ELLIPSE, // shape
-        cv::Size(7, 7)     // size
-    );
-
-    // Erosion (shrinks the white areas)
-    cv::Mat eroded;
-    cv::erode(mask_lab, eroded, kernel);
-
-    // Dilation (expands the white areas)
-    cv::Mat mask_lab_dilated;
-    cv::dilate(eroded, mask_lab_dilated, cv::Mat(), cv::Point(-1,-1), 50); 
-    
-    // Threshold in HSV space
-    cv::Mat mask_hsv;
-    cv::cvtColor(I, mask_hsv, cv::COLOR_BGR2HSV);
-    cv::inRange(I, cv::Scalar(0, 40, 0), cv::Scalar(180, 255, 255), mask_hsv);
-
-    // Refine HSV mask with Lab mask
-    cv::Mat mask_hsv_refined;
-    cv::bitwise_and(mask_hsv, mask_lab_dilated, mask_hsv_refined);
-
-    // Combine both masks
-    cv::bitwise_or(mask_lab, mask_hsv_refined, mask);
-
-    // // uncomment to see the final mask *****
-    // cv::namedWindow("Final Mask", cv::WINDOW_KEEPRATIO);
-    // cv::imshow("Final Mask", mask);
-
-    // Convert to grayscale and blur
-    cv::Mat gray;
-    if (mask.channels() == 3) {
-        cv::cvtColor(mask, gray, cv::COLOR_BGR2GRAY);
-    } else {
-        gray = mask.clone();
-    }
-    // define kernel size a 9 * downsampling factor and cast to the nearest odd value
-    int kernel_size = static_cast<int>(9 * downsampling_factor);
-    if (kernel_size % 2 == 0) {
-        kernel_size += 1;
-    }
-    cv::GaussianBlur(gray, gray, cv::Size(kernel_size, kernel_size), downsampling_factor*2, downsampling_factor*2);
-
-     // Find circles using Hough Transform
-    cv::HoughCircles(gray, circles, cv::HOUGH_GRADIENT,
-                    1,     // dp
+    // Find circles using Hough Transform
+    cv::HoughCircles(edges, circles, cv::HOUGH_GRADIENT,
+                    1.25,     // dp
                     200*downsampling_factor,   // minDist
                     100, 30, // param1, param2
                     95*downsampling_factor, 210*downsampling_factor); // minRadius, maxRadius
-    
+
+    // ----- second processing to select circles based on color contained -----
+    cv::Mat I_lab;
+    cv::cvtColor(I, I_lab, cv::COLOR_BGR2Lab);
+
+    // Split nei canali
+    cv::Mat copper, gold, mask_lab;
+    std::vector<cv::Mat> lab_planes(3);
+    cv::split(I_lab, lab_planes);
+    cv::Mat L = lab_planes[0];  // Lightness
+    cv::Mat a = lab_planes[1];  // Green ↔ Red
+    cv::Mat b = lab_planes[2];  // Blue ↔ Yellow
+    // set a threshold in Lab format
+    cv::inRange(a, 135, 255, copper);
+    cv::inRange(b, 134, 255, gold);
+    cv::bitwise_or(copper, gold, mask_lab);
+
+    // // uncomment to see the copper *****
+    // cv::namedWindow("Mask copper", cv::WINDOW_KEEPRATIO);
+    // cv::imshow("Mask copper", copper);
+    // // uncomment to see the gold *****
+    // cv::namedWindow("Mask gold", cv::WINDOW_KEEPRATIO);
+    // cv::imshow("Mask gold", gold);
+    // // uncomment to see the mask_lab *****
+    // cv::namedWindow("Mask lab", cv::WINDOW_KEEPRATIO);
+    // cv::imshow("Mask lab", mask_lab);
+
+    for (const auto& circle : circles) {
+        // compute the average color inside the circle
+        cv::Mat c = cv::Mat::zeros(mask_lab.size(), CV_8U);
+        cv::circle(c, cv::Point(circle[0], circle[1]), circle[2], cv::Scalar(255), -1);
+        cv::Scalar mean = cv::mean(mask_lab, c); // mean[0] contains the average value
+
+        // std::cout << "Circle at (" << circle[0] << ", " << circle[1] << ") with radius " << circle[2] 
+        //           << " has mean mask value: " << mean[0] << std::endl;
+        // if the average color is above a certain threshold, keep the circle
+        if (mean[0] < 100) { // threshold to be tuned
+            circles.erase(std::remove(circles.begin(), circles.end(), circle), circles.end());
+            // std::cout << "Circle rejected." << std::endl;
+        }
+    }
+
     // Sort circles by radius in ascending order
     std::sort(circles.begin(), circles.end(), [](const cv::Vec3f& a, const cv::Vec3f& b) { return a[2] < b[2]; });
 
@@ -96,6 +100,7 @@ std::vector<cv::Mat> split_image_by_coins(const cv::Mat& I, const std::vector<cv
 
         cv::Rect roi(x_start, y_start, x_end - x_start, y_end - y_start);
         coin_images.push_back(I(roi).clone());
+
     }
     return coin_images;
 }
