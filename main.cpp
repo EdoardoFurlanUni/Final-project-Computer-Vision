@@ -21,6 +21,8 @@ int main(int argc, const char* argv[])
         "../test/videos/", "../test/videos/video1_frame/images", "../test/videos/video2_frame/images"
     };
 
+    std::string results_path;
+
 
     // ----- LOAD IMAGES (dataset) -----
     const float downsampling_factor = 0.75;
@@ -73,7 +75,7 @@ int main(int argc, const char* argv[])
 
     if(std::string(argv[1]) == "images") {
         std::vector<cv::Mat> test_images_gray;
-
+        results_path = "../results/images";
         // load images in test path
         test_images_gray = load_images_from_folder(test_images_path, cv::IMREAD_GRAYSCALE);
         for (cv::Mat& image : test_images_gray) {
@@ -130,7 +132,16 @@ int main(int argc, const char* argv[])
         // define the videro writer
         int fps = cap.get(cv::CAP_PROP_FPS);
         cv::Size frameSize(cvRound(0.3f*downsampling_factor*1.89f*cap.get(cv::CAP_PROP_FRAME_WIDTH)), cvRound(0.3f*downsampling_factor*1.89f*cap.get(cv::CAP_PROP_FRAME_HEIGHT)));
-        std::string output_path = "../test/videos/output_" + std::string(argv[1]) + ".avi";
+        results_path = "../results/video_" + std::string(argv[1]);
+        // Crea la cartella se non esiste
+        if (!std::filesystem::exists(results_path)) {
+            if (!std::filesystem::create_directories(results_path)) {
+                std::cerr << "Error: can't open folder:  " << results_path << std::endl;
+                return 0;
+            }
+        }
+        
+        std::string output_path = results_path + "/output_video_" + std::string(argv[1]) + ".avi";
         cv::VideoWriter writer(output_path,
                             cv::VideoWriter::fourcc('M','J','P','G'),
                             fps,
@@ -359,14 +370,14 @@ int main(int argc, const char* argv[])
         std::cout << out.str();
 
         // Draw circles
-        for (size_t j = 0; j < predicted_circles[i].size(); j++) {
+        /*for (size_t j = 0; j < predicted_circles[i].size(); j++) {
             cv::Vec3f& c = predicted_circles[i][j];
             cv::Point center(cvRound(c[0]), cvRound(c[1]));
             int radius = cvRound(c[2]);
 
             cv::circle(test_images_colour[i], center, radius, cv::Scalar(255, 0, 255), static_cast<int>(3*downsampling_factor), cv::LINE_AA);
             cv::putText(test_images_colour[i], std::to_string(j), cv::Point(center.x-radius/2, center.y+radius/2), cv::FONT_HERSHEY_SIMPLEX, 1.5*downsampling_factor, cv::Scalar(255, 0, 255), static_cast<int>(3*downsampling_factor));
-        }
+        }*/
         // Draw ground truth coins
         for (const auto& coin: ground_truth_labels[i]) {
             cv::circle(test_images_colour[i], coin.center, coin.radius, cv::Scalar(255, 255, 255), static_cast<int>(5*downsampling_factor), cv::LINE_AA);
@@ -380,10 +391,31 @@ int main(int argc, const char* argv[])
 
         cv::namedWindow("Results", cv::WINDOW_KEEPRATIO);
         cv::imshow("Results", test_images_colour[i]);
+
+
+
         std::cout << "Press any key to continue..." << std::endl;
         cv::waitKey(0);
     }
 
+
+    // Crea la cartella se non esiste
+    if (!std::filesystem::exists(results_path)) {
+        if (!std::filesystem::create_directories(results_path)) {
+            std::cerr << "Error: can't open folder:  " << results_path << std::endl;
+            return 0;
+        }
+    }
+
+    for (size_t i = 0; i < test_images_colour.size(); ++i) {
+        std::ostringstream oss;
+        oss << results_path << "/" << "frame_" << i << ".jpg";
+        const std::string filename = oss.str();
+
+        if (!cv::imwrite(filename, test_images_colour[i])) {
+            std::cerr << "Error in saving image: " << filename << std::endl;
+        }
+    }
     return 0;
 }
 

@@ -23,51 +23,45 @@ void progress_bar(int current, int total, int bar_width) {
 std::vector<std::vector<DetectedCoin>> get_labels_from_folder(const std::string& folder_path, const float downsampling_factor) {
     std::vector<std::vector<DetectedCoin>> all_labels;
 
-    DIR* dir = opendir(folder_path.c_str());
+    std::vector<cv::String> files;
+    cv::glob(folder_path, files, false);
 
-    struct dirent* entry;
-    while ((entry = readdir(dir)) != nullptr) {
-        std::string filename = entry->d_name;
+    for(const auto& filepath: files){
 
-        if (filename.length() < 4) continue;
-
-        // if is file .txt
-        if (filename.substr(filename.find_last_of(".") + 1) == "txt") {
-
-            std::vector<DetectedCoin> labels;
-
-            // read line by line
-            std::ifstream file(folder_path + "/" + filename);
-            std::string line;
-            while (std::getline(file, line)) {
-
-                std::istringstream iss(line);
-                DetectedCoin coin;
-
-                char c1, c2, c3; // for brackets and comma
-                if (iss >> coin.class_name       // EUR_xxx
-                >> c1 >> coin.center.x           // '(' // x
-                >> c2 >> coin.center.y           // ',' // y
-                >> c3 >> coin.radius) {          // ')' // r
-
-                    // Ignore line containing the sum
-                    if (coin.class_name == "SUM") {
-                        continue;
-                    }
-
-                    coin.center.x = static_cast<int>(coin.center.x * downsampling_factor);
-                    coin.center.y = static_cast<int>(coin.center.y * downsampling_factor);
-                    coin.radius = static_cast<int>(coin.radius * downsampling_factor);
-                    coin.confidence = 1.0; // ground truth confidence
-
-                    labels.push_back(coin);
-                }
-            }
-
-            all_labels.push_back(labels);
+        std::ifstream file(filepath);
+        if (!file.is_open()) {
+            std::cerr << "Errore nell'apertura del file: " << filepath << std::endl;
+            continue;
         }
+
+        std::vector<DetectedCoin> labels;
+
+        std::string line;
+        while (std::getline(file, line)) {
+            std::istringstream iss(line);
+            DetectedCoin coin;
+
+            char c1, c2, c3; // for brackets and comma
+            if (iss >> coin.class_name       // EUR_xxx
+            >> c1 >> coin.center.x           // '(' // x
+            >> c2 >> coin.center.y           // ',' // y
+            >> c3 >> coin.radius) {          // ')' // r
+
+                // Ignore line containing the sum
+                if (coin.class_name == "SUM") {
+                    continue;
+                }
+
+                coin.center.x = static_cast<int>(coin.center.x * downsampling_factor);
+                coin.center.y = static_cast<int>(coin.center.y * downsampling_factor);
+                coin.radius = static_cast<int>(coin.radius * downsampling_factor);
+                coin.confidence = 1.0; // ground truth confidence
+
+                labels.push_back(coin);
+            }
+        }
+        all_labels.push_back(labels);
     }
-    closedir(dir);
 
     return all_labels;
 }
