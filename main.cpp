@@ -7,16 +7,16 @@ int main(int argc, const char* argv[])
     };
 
     const std::vector<std::string> dataset_images_paths= {
-        "../template/images/EUR_001", "../template/images/EUR_002", "../template/images/EUR_010", "../template/images/EUR_020", "../template/images/EUR_050", "../template/images/EUR_100", "../template/images/EUR_200"
+        "../template/images/EUR_001/*.jpg", "../template/images/EUR_002/*.jpg", "../template/images/EUR_010/*.jpg", "../template/images/EUR_020/*.jpg", "../template/images/EUR_050/*.jpg", "../template/images/EUR_100/*.jpg", "../template/images/EUR_200/*.jpg"
     };
     const std::vector<std::string> dataset_labels_paths= {
-        "../dataset/labels/EUR_001", "../dataset/labels/EUR_002", "../dataset/labels/EUR_010", "../dataset/labels/EUR_020", "../dataset/labels/EUR_050", "../dataset/labels/EUR_100", "../dataset/labels/EUR_200"
+        "../dataset/labels/EUR_001/*.jpg", "../dataset/labels/EUR_002/*.jpg", "../dataset/labels/EUR_010/*.jpg", "../dataset/labels/EUR_020/*.jpg", "../dataset/labels/EUR_050/*.jpg", "../dataset/labels/EUR_100/*.jpg", "../dataset/labels/EUR_200/*.jpg"
     };
 
-    const std::string test_images_path = "../test/images/";
-    const std::string test_labels_path = "../test/labels/";
-    const std::string test_videos_labels_path_1 = "../test/videos/video1_frame/labels/";
-    const std::string test_videos_labels_path_2 = "../test/videos/video2_frame/labels/";
+    const std::string test_images_path = "../test/images/*.jpg";
+    const std::string test_labels_path = "../test/labels/*.txt";
+    const std::string test_videos_labels_path_1 = "../test/videos/video1_frame/labels/*.txt";
+    const std::string test_videos_labels_path_2 = "../test/videos/video2_frame/labels/*.txt";
     const std::vector<std::string> test_videos_path = {
         "../test/videos/", "../test/videos/video1_frame/images", "../test/videos/video2_frame/images"
     };
