@@ -22,7 +22,7 @@ int main(int argc, const char* argv[])
     };
 
 
-    // ----- LOAD DATASET IMAGES -----
+    // ----- LOAD IMAGES (dataset) -----
     const float downsampling_factor = 0.75;
 
     // load images in dataset path
@@ -39,6 +39,7 @@ int main(int argc, const char* argv[])
 
         dataset_images_gray.push_back(images_in_folder);
     }
+
 
     // ----- PREPROCESSING (dataset) -----
     const std::vector<cv::Point2f> points_contrast_stretching = {cv::Point2f(0,0), cv::Point2f(0.9*255, 255), cv::Point2f(255, 255)};
@@ -59,19 +60,20 @@ int main(int argc, const char* argv[])
         return 1;
     }
 
-    std::string input_matching = argv[1];
 
-    int number_of_images;
+    // ----- DETECTION (test images or videos) -----
     std::vector<std::vector<cv::Vec3f>> predicted_circles;
     std::vector<std::vector<DetectedCoin>> predicted_labels;
-    cv::Mat original_frame, frame, last;
-    std::vector<DetectedCoin> last_coins_found;
-    std::vector<cv::Vec3f> last_circles_found;
     std::vector<std::vector<DetectedCoin>> ground_truth_labels;
-    std::vector<cv::Mat> test_images_gray;
     std::vector<cv::Mat> test_images_colour;
 
-    if(input_matching == "images"){
+    const int coin_image_margin = static_cast<int>(25*downsampling_factor);
+    const int rotations = 8;
+    const float matching_threshold = 0.5;
+
+    if(std::string(argv[1]) == "images") {
+        std::vector<cv::Mat> test_images_gray;
+
         // load images in test path
         test_images_gray = load_images_from_folder(test_images_path, cv::IMREAD_GRAYSCALE);
         for (cv::Mat& image : test_images_gray) {
@@ -81,20 +83,14 @@ int main(int argc, const char* argv[])
         for (cv::Mat& image : test_images_colour) {
             cv::resize(image, image, cv::Size(), downsampling_factor, downsampling_factor);
         }
-        
-        //load ground truth labels for performance evaluation
+        // load ground truth labels for performance evaluation
         ground_truth_labels = get_labels_from_folder(test_labels_path, downsampling_factor);
 
 
         // ----- TEMPLATE MATCHING (test images) -----
 
-        number_of_images = static_cast<int>(test_images_colour.size());
-        const int coin_image_margin = static_cast<int>(25*downsampling_factor);
-        const int rotations = 8;
-        const float matching_threshold = 0.5;
-
         // loop over all test images
-        for (size_t i = 0; i < number_of_images; i++) {
+        for (size_t i = 0; i < test_images_colour.size(); i++) {
 
             // search for circles
             std::vector<cv::Vec3f> circles = get_circles_positions(test_images_colour[i], downsampling_factor);
@@ -116,74 +112,72 @@ int main(int argc, const char* argv[])
             // Measure the time taken for template matching
             auto end = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double> elapsed = end - start;
-            std::cout << "Image " << i << " / " << number_of_images-1 << " : " << elapsed.count() << " seconds" << std::endl;
+            std::cout << "Image " << i << " / " << test_images_colour.size()-1 << " : " << elapsed.count() << " seconds" << std::endl;
         }
     }
-    else if (input_matching == "video1" || input_matching == "video2"){
+    else if (std::string(argv[1]) == "video1" || std::string(argv[1]) == "video2"){
+        cv::Mat original_frame, frame, last;
+        std::vector<DetectedCoin> last_coins_found;
+        std::vector<cv::Vec3f> last_circles_found;
 
-        std::ostringstream out1; // to not overwrite cout
-        out1 << "../test/videos/" << input_matching << ".MOV";
-        std::string path_video = out1.str();
-        cv::VideoCapture cap(path_video);
-        int video = (input_matching == "video1") ? 1 : 2;
-
+        // open input video file
+        cv::VideoCapture cap("../test/videos/" + std::string(argv[1]) + ".MOV");
         if (!cap.isOpened()) {
             std::cerr << "Errore: impossibile aprire il video!" << std::endl;
             return -1;
         }
 
+        // define the videro writer
         int fps = cap.get(cv::CAP_PROP_FPS);
         cv::Size frameSize(cvRound(0.3f*downsampling_factor*1.89f*cap.get(cv::CAP_PROP_FRAME_WIDTH)), cvRound(0.3f*downsampling_factor*1.89f*cap.get(cv::CAP_PROP_FRAME_HEIGHT)));
-        std::ostringstream out2;
-        out2 << "../test/videos/output" << video << ".avi";
-        std::string output_path = out2.str();
-        
+        std::string output_path = "../test/videos/output_" + std::string(argv[1]) + ".avi";
         cv::VideoWriter writer(output_path,
                             cv::VideoWriter::fourcc('M','J','P','G'),
                             fps,
                             frameSize,
                             true); // true = color video
 
-
-        int similarity_timer = 0; // every 3 similar analyze the frame
-
-        number_of_images = 5;
-        int frame_indexes[number_of_images];
-
-        if (video == 1){
+        // load ground truth labels for performance evaluation
+        std::vector<int> frame_indexes;
+        if (std::string(argv[1]) == "video1"){
             ground_truth_labels = get_labels_from_folder(test_videos_labels_path_1, 1.89f*downsampling_factor);
-            frame_indexes[0] = 156;
-            frame_indexes[1] = 250;
-            frame_indexes[2] = 377;
-            frame_indexes[3] = 452;
-            frame_indexes[4] = 562;
+            frame_indexes.push_back(156);
+            frame_indexes.push_back(250);
+            frame_indexes.push_back(377);
+            frame_indexes.push_back(452);
+            frame_indexes.push_back(562);
         } else {
-            frame_indexes[0] = 117;
-            frame_indexes[1] = 185;
-            frame_indexes[2] = 251;
-            frame_indexes[3] = 332;
-            frame_indexes[4] = 532;
             ground_truth_labels = get_labels_from_folder(test_videos_labels_path_2, 1.89f*downsampling_factor);
+            frame_indexes.push_back(117);
+            frame_indexes.push_back(185);
+            frame_indexes.push_back(251);
+            frame_indexes.push_back(332);
+            frame_indexes.push_back(532);
         }
 
         // ----- TEMPLATE MATCHING (test videos) -----
-        float sum = 0;
-        int frame_count = 0;
-
         cv::namedWindow("Template Matching", cv::WINDOW_KEEPRATIO);
-
         std::cout << "Press ESC to exit" << std::endl;
 
+        const int max_similar_frames = 10;
+        int similarity_timer = max_similar_frames; // to force analysis on first frames
+        const float different_threshold = 0.83f; // thresholds to decide if frames are different
+        const float similar_threshold = 0.845f; // or similar
+        float sum = 0;
+        int frame_count = 0;
+        
         while (true) {
             cap >> original_frame;
+            
+            // show progress bar
             frame_count++;
-            if (original_frame.empty()) break;
-
             progress_bar(frame_count, static_cast<int>(cap.get(cv::CAP_PROP_FRAME_COUNT)), 100);
 
-            // if (frame_count < 218) {
-            //     continue;
-            // }
+            if (original_frame.empty()) break;
+
+            if (frame_count < 100) {
+                continue;
+            }
 
             // upscale and downsample to obtain the same size for coins
             cv::resize(original_frame, original_frame, cv::Size(), downsampling_factor*1.89f, downsampling_factor*1.89f);
@@ -202,34 +196,33 @@ int main(int argc, const char* argv[])
 
             cv::merge(lab_planes, lab);
             cv::cvtColor(lab, frame, cv::COLOR_Lab2BGR);
-            
-            // OPZIONALE -> per tornare indietro commentare e a riga 125 sostituire con maxDiff < 0.92 || maxDiff > 0.94
+
             cv::resize(frame, frame, cv::Size(), 0.25f, 0.25f);
 
             if(!last.empty()) {
                 // compute similarity between frames
                 double similarity = getSSIM(frame, last);
-                const float different_threshold = 0.83f;
-                const float similar_threshold = 0.845f;
 
-                if (similarity_timer >= 10 || std::find(frame_indexes, frame_indexes + number_of_images, frame_count) != frame_indexes + number_of_images) { // every 3 similar analyze the frame
-                    similarity_timer = 0;
+                // check if similarity timer is expired or if current frame is in the list of frames to be analyzed
+                if (similarity_timer == 0 || std::find(frame_indexes.begin(), frame_indexes.end(), frame_count) != frame_indexes.end()) {
+                    similarity_timer = max_similar_frames;
                     similarity = similar_threshold - 0.001f; // to force analysis
                 }
 
                 // std::cout << "Similarity between frames: " << similarity;
                 if (similarity < different_threshold) {
-                    similarity_timer = 0;
+                    similarity_timer = max_similar_frames;
                     // std::cout << " different" << std::endl;
                 }
                 else if (similarity > similar_threshold) {
-                    similarity_timer++;
+                    similarity_timer--;
                     // std::cout << " similar" << std::endl;
                 }
                 else {
-                    similarity_timer = 0;
+                    similarity_timer = max_similar_frames;
                     // std::cout << " uncertain" << std::endl;
                 }
+
                 // if similarity is in this range, use last coins found
                 if (similarity < different_threshold || similarity > similar_threshold) {
                     sum = 0;
@@ -240,25 +233,23 @@ int main(int argc, const char* argv[])
                     }
 
                     std::ostringstream out; // to not overwrite cout
-                    out << std::fixed << std::setprecision(2);  // fix at 2 decimals
-                    out << sum;
-                    std::string sum_str = out.str();
-                    cv::putText(original_frame, "Sum: " + sum_str + " euro", cv::Point(50, 100), cv::FONT_HERSHEY_SIMPLEX, 3 * downsampling_factor, cv::Scalar(0, 0, 255), static_cast<int>(5 * downsampling_factor));
+                    out << std::fixed << std::setprecision(2) << sum;  // fix at 2 decimals
+                    cv::putText(original_frame, "Sum: " + out.str() + " euro", cv::Point(50, 100), cv::FONT_HERSHEY_SIMPLEX, 3 * downsampling_factor, cv::Scalar(0, 0, 255), static_cast<int>(5 * downsampling_factor));
             
                     // save frame for output video
                     cv::resize(original_frame, original_frame, cv::Size(), 0.3, 0.3); // rescale to reduce video dimension
                     writer.write(original_frame);
+
                     // show current frame with last coins found
                     cv::imshow("Template Matching", original_frame);
 
-                    for (int idx : frame_indexes) {
-                        if (frame_count == idx) {
-                            // Store predicted labels for each image
-                            predicted_labels.push_back(last_coins_found);
-                            test_images_colour.push_back(original_frame.clone());
-                            predicted_circles.push_back(last_circles_found);
-                        }
-                    }      
+                    if (std::find(frame_indexes.begin(), frame_indexes.end(), frame_count) != frame_indexes.end()) {
+                        // Store predicted labels for each image
+                        test_images_colour.push_back(original_frame.clone());
+                        predicted_circles.push_back(last_circles_found);
+                        predicted_labels.push_back(last_coins_found);
+                    }
+
                     last = frame.clone();
                     char c = (char)cv::waitKey(1);
                     if (c == 27) break;
@@ -274,10 +265,6 @@ int main(int argc, const char* argv[])
             cv::Mat frame_gray;
             cv::cvtColor(frame, frame_gray, cv::COLOR_BGR2GRAY);
 
-            const int coin_image_margin = static_cast<int>(25*downsampling_factor);
-            const int rotations = 8;
-            const float matching_threshold = 0.5;
-
             // search for circles
             std::vector<cv::Vec3f> circles = get_circles_positions(frame, downsampling_factor);
 
@@ -290,16 +277,12 @@ int main(int argc, const char* argv[])
             last_coins_found = coins_found;
             last_circles_found = circles;
 
-            //add labels found to predicted_circles
-            for (int idx : frame_indexes) {
-                if (frame_count == idx) {
-                    // Store predicted labels for each image
-                    predicted_labels.push_back(coins_found);
-                    test_images_colour.push_back(original_frame.clone());
-                    predicted_circles.push_back(circles);
-                }
+            if (std::find(frame_indexes.begin(), frame_indexes.end(), frame_count) != frame_indexes.end()) {
+                // Store predicted labels for each image
+                test_images_colour.push_back(original_frame.clone());
+                predicted_circles.push_back(circles);
+                predicted_labels.push_back(coins_found);
             }
-
             // Draw circles
             for (size_t j = 0; j < circles.size(); j++) {
                 cv::Vec3f& c = circles[j];
@@ -311,25 +294,21 @@ int main(int argc, const char* argv[])
 
             }
             // Draw predicted coins
+            sum = 0;
             for (const auto& d : coins_found) {
                 cv::circle(original_frame, d.center, d.radius, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor), cv::LINE_AA);
                 cv::putText(original_frame, d.class_name, cv::Point(d.center.x, d.center.y - 10), cv::FONT_HERSHEY_SIMPLEX, 2*downsampling_factor, cv::Scalar(0, 255, 0), static_cast<int>(5*downsampling_factor));
                 sum += std::stof(d.class_name.substr(4)) / 100.0f; // extract last 3 char from class_name and cast to float
             }
-
             std::ostringstream out; // to not overwrite cout
-            out << std::fixed << std::setprecision(2);  // fix at 2 decimals
-            out << sum;
-            std::string sum_str = out.str();
-
-            cv::putText(original_frame, "Sum: " + sum_str + " euro", cv::Point(50, 100), cv::FONT_HERSHEY_SIMPLEX, 3 * downsampling_factor, cv::Scalar(0, 0, 255), static_cast<int>(5 * downsampling_factor));
+            out << std::fixed << std::setprecision(2) << sum;  // fix at 2 decimal;
+            cv::putText(original_frame, "Sum: " + out.str() + " euro", cv::Point(50, 100), cv::FONT_HERSHEY_SIMPLEX, 3 * downsampling_factor, cv::Scalar(0, 0, 255), static_cast<int>(5 * downsampling_factor));
         
             // save frame for output video
             cv::resize(original_frame, original_frame, cv::Size(), 0.3, 0.3); // rescale to reduce video dimension
             writer.write(original_frame);
 
             cv::imshow("Template Matching", original_frame);
-            // cv::waitKey(0);
             // Esc per uscire
             char c = (char)cv::waitKey(1);
             if (c == 27) break;
@@ -358,13 +337,12 @@ int main(int argc, const char* argv[])
         cv::destroyAllWindows();
     }
     else{
-        std::cerr << "Non valid input: " << input_matching 
-                << ". Use video1, video2 or images." << std::endl;
+        std::cerr << "Non valid input: " << std::string(argv[1]) << ". Use video1, video2 or images." << std::endl;
         return 1;
     }
 
     // ----- PERFORMANCE METRICS AND RESULTS (test videos) -----
-    for (size_t i = 0; i < number_of_images; i++) {
+    for (size_t i = 0; i < test_images_colour.size(); i++) {
 
         std::cout << "######### Results for image " << i << " #########" << std::endl;
 
