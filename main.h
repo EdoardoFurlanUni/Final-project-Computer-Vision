@@ -9,6 +9,7 @@
 #include <fstream>
 #include <chrono>   // time measurement
 #include <iomanip> // used for std::setprecision
+#include <algorithm>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/features2d.hpp>

@@ -212,7 +212,7 @@ int main(int argc, const char* argv[])
                 const float different_threshold = 0.83f;
                 const float similar_threshold = 0.845f;
 
-                if (similarity_timer >= 10) { // every 3 similar analyze the frame
+                if (similarity_timer >= 10 || std::find(frame_indexes, frame_indexes + number_of_images, frame_count) != frame_indexes + number_of_images) { // every 3 similar analyze the frame
                     similarity_timer = 0;
                     similarity = similar_threshold - 0.001f; // to force analysis
                 }
