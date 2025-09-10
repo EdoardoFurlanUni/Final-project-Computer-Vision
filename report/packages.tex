@@ -1,0 +1,30 @@
+% *** PAGE LAYOUT ***
+\usepackage{geometry}     
+\usepackage[parfill]{parskip}       % Begin paragraphs with an empty line rather than an indent
+\geometry{a4paper,bmargin=2.9cm,lmargin=2.9cm,rmargin=2.9cm}
+\usepackage{setspace}     % line spacing
+
+% *** PAGE NUMBERING *** 
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\lhead{} 
+\chead{}
+\rhead{}
+\lfoot{}
+\cfoot{\scriptsize University of Padova} 
+\rfoot{ \scriptsize \thepage/\pageref{LastPage} }  
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% *** TABLES ***
+\usepackage{booktabs, topcapt}
+\usepackage{multirow}
+
+% *** IMAGES *** 
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage[caption=false, font=footnotesize]{subfig} % sub-figures
+\usepackage{float} % migliore controllo su figure e tabelle
+
+% *** MATH ***
+\usepackage{amsmath, amsfonts, amssymb, amsthm}

@@ -1,0 +1,52 @@
+\documentclass[11pt]{article}
+
+\input{packages}
+
+\title{
+	{Report on euro counter project}
+}
+\author{
+	Group name: RGB++\\[5pt]
+	Edoardo Furlan; email: \texttt{edoardo.furlan@studenti.unipd.it}\\
+	Andrea Marigo; email: \texttt{andrea.marigo.3@studenti.unipd.it}\\
+	Francesca Zorzi; email: \texttt{francesca.zorzi.3@studenti.unipd.it}\\
+	} 
+
+% -------------------------------------------------------------------------------- %
+
+\begin{document}
+
+\maketitle				%	print title
+\pagestyle{fancy} 		%	set page style
+\setcounter{page}{1}	%	set page number counter
+\onehalfspacing 		%	alternatives: \singlespacing, \doublespacing, \setstretch{1.1}
+
+% -------------------------------------------------------------------------------- %
+
+\section{Introduction}
+\input{Section0/sub0.tex}
+
+\section{Detection procedure}
+\input{Section1/sub0.tex} % Descrizione della procedura a cascata di classificatori
+\subsection{Preprocessing}
+\input{Section1/sub1.tex}
+\subsection{Detecting circles and filtering by color}
+\input{Section1/sub2.tex}
+\subsection{Template matching}
+\input{Section1/sub3.tex}
+\subsection{Skipping strategy for video processing}
+\input{Section1/sub4.tex}
+
+\section{Results}
+\input{Section2/sub0.tex}
+\subsection{Performance on images}
+\input{Section2/sub1.tex}
+\subsection{Performance on videos}
+\input{Section2/sub2.tex}
+\subsection{Limitations of the method}
+\input{Section2/sub3.tex}
+
+\section{Conclusion and possible improvements}
+\input{Section3/sub0.tex}
+
+\end{document}

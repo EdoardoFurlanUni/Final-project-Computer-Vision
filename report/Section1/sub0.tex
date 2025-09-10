@@ -1,0 +1,18 @@
+
+Our initial idea was to exploit the strict repeatability of the coins' appearance to implement a template matching algorithm.
+In fact, all euro coins have a circular shape and a very specific design on both sides, which makes them easily distinguishable. 
+Due to the limitations of the template matching algorithm, we decided to use all the information we had about the coins to create a cascade of classifiers that would progressively filter out non-coin objects and classify the coins.
+The main features we could exploit were:
+\begin{itemize}
+    \item circular in shape;
+    \item fixed size (diameter) for each denomination due to the fact that by hypotesis all pictures are taken from a fixed distance and resolution;
+    \item color information (gold, silver, bi-metallic);
+    \item texture information.
+\end{itemize}
+After applying some preprocessing to the input image, we could use a cascade of classifiers to detect and classify the coins.
+The cascade consists of three stages:
+\begin{itemize}
+    \item circles detection;
+    \item filtering by color;
+    \item template matching.
+\end{itemize}
