@@ -1,3 +1,17 @@
 
-Da dire come viene sfruttata l'informazione della prosizione dei cerchi per suddividere in regioni di interesse e velocizzare la classificazione.
-Perchè non l'ho messa in sub2.
+The template matching algorithm is implemented using the \texttt{matchTemplate} function from OpenCV.
+For the templates, we manually cut the dataset images so that they only contain the coin with less background possible.
+Then, the matching is performed using the \texttt{TM\_CCOEFF\_NORMED} method, which computes the normalized correlation coefficient between the template and the image region.
+This method was chosen because it is not affected by the absolute values of the pixel intensities, making it more robust to changes in lighting conditions.
+
+To achieve also rotation invariance, the matching is performed multiple times for each template, rotating it by 45 degrees and keeping the maximum score obtained.
+The final classification is done by selecting the template with the highest score among all the templates and rotations.
+
+A threshold of $0.5$ is applied to the maximum score to filter out low-confidence matches.
+
+To speed up the matching process, we exploited the information about the position and size of the detected circles:
+\begin{itemize}
+    \item we divided the image into regions of interest, each containing a detected circle. In this way, also the preprocessing described before is applied only to these regions, reducing the amount of data to process;
+    \item for each region, the matching is computed only for the templates that have a diameter smaller than the detected circle.
+\end{itemize}
+These two strategies allowed us to significantly reduce the computation time by reducing the area in which the matching is performed.
