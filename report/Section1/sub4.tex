@@ -20,8 +20,8 @@ We introduced two thresholds $\texttt{different\_threshold}$ and $\texttt{simila
 
 To make the method more robust, we added rules that forced the analysis of certain frames, regardless of their similarity value:
 \begin{itemize}
-\item Timer expiration: if too many consecutive frames had been skipped, the next frame was processed to avoid missing gradual changes.
-\item Ground-truth frames: if the current frame index belonged to a predefined list of frames used for evaluation, it was processed to guarantee comparability.
+\item \textbf{Timer expiration}: if too many consecutive frames had been skipped, the next frame was processed to avoid missing gradual changes.
+\item \textbf{Ground-truth frames}: if the current frame index belonged to a predefined list of frames used for evaluation, it was processed to guarantee comparability.
 \end{itemize}
 In these cases, the algorithm slightly lowered the similarity value below the threshold, effectively tricking the system into treating the frame as “different enough” to be analyzed.\\
 When a frame was skipped, the results from the last analyzed frame were reused. This ensured that predictions were always available for every frame in the video, even if some of them were not directly processed.
