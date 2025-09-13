@@ -22,14 +22,14 @@ In fact, it brought several advantages:
     \label{Detection:fig:circle_detection_intermediate}
 \end{figure}
 
-After this preprocessing, we applied the Hough Circle Transform to detect circles in the image (Figure \ref{Detection:fig:circle_detection_intermediate}).
+After this preprocessing, we applied the Hough Circle Transform to detect circles in the image (Figure~\ref{Detection:fig:circle_detection_intermediate}).
 
 To further improve the detection, we exploited the color information of the coins.
 In fact, euro coins contain only three colors: gold, silver and copper.
 Actually there is no completely silver coin, since the 1 and 2 euro coins contain also gold.
 So we decided to compute a mask containing only the gold and copper colors, which are the most distinguishable ones and are not usually present in any other objects.
 To do this, we converted the image to the LAB color space and created a mask by thresholding the \textbf{a} and \textbf{b} channels.
-This way, we were able to filter out all the circles that did not contain enough gold or copper color inside them independently from the lightness (Figure \ref{Detection:fig:circle_detection_final}).
+This way, we were able to filter out all the circles that did not contain enough gold or copper color inside them independently from the lightness (Figure~\ref{Detection:fig:circle_detection_final}).
 
 \begin{figure}[H]
     \centering
