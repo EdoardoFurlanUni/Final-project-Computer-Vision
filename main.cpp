@@ -2,6 +2,7 @@
 
 int main(int argc, const char* argv[])
 {
+    // ----- PATHS -----
     const std::vector<std::string> coins_classes = {
         "EUR_001", "EUR_002", "EUR_010", "EUR_020", "EUR_050", "EUR_100", "EUR_200"
     };
@@ -73,6 +74,7 @@ int main(int argc, const char* argv[])
     const int rotations = 8;
     const float matching_threshold = 0.5;
 
+    // division of detection between images and videos
     if(std::string(argv[1]) == "images") {
         std::vector<cv::Mat> test_images_gray;
         results_path = "../results/images";
@@ -125,14 +127,14 @@ int main(int argc, const char* argv[])
         // open input video file
         cv::VideoCapture cap("../test/videos/" + std::string(argv[1]) + ".MOV");
         if (!cap.isOpened()) {
-            std::cerr << "Errore: impossibile aprire il video!" << std::endl;
+            std::cerr << "Error: can't open video!" << std::endl;
             return -1;
         }
 
-        // define the videro writer
+        // define the video writer
         int fps = cap.get(cv::CAP_PROP_FPS);
         cv::Size frameSize(cvRound(0.3f*downsampling_factor*1.89f*cap.get(cv::CAP_PROP_FRAME_WIDTH)), cvRound(0.3f*downsampling_factor*1.89f*cap.get(cv::CAP_PROP_FRAME_HEIGHT)));
-        results_path = "../results/video_" + std::string(argv[1]);
+        results_path = "../results/" + std::string(argv[1]);
         // Crea la cartella se non esiste
         if (!std::filesystem::exists(results_path)) {
             if (!std::filesystem::create_directories(results_path)) {
@@ -141,7 +143,7 @@ int main(int argc, const char* argv[])
             }
         }
         
-        std::string output_path = results_path + "/output_video_" + std::string(argv[1]) + ".avi";
+        std::string output_path = results_path + "/output_" + std::string(argv[1]) + ".avi";
         cv::VideoWriter writer(output_path,
                             cv::VideoWriter::fourcc('M','J','P','G'),
                             fps,
@@ -220,18 +222,14 @@ int main(int argc, const char* argv[])
                     similarity = similar_threshold - 0.001f; // to force analysis
                 }
 
-                // std::cout << "Similarity between frames: " << similarity;
                 if (similarity < different_threshold) {
                     similarity_timer = max_similar_frames;
-                    // std::cout << " different" << std::endl;
                 }
                 else if (similarity > similar_threshold) {
                     similarity_timer--;
-                    // std::cout << " similar" << std::endl;
                 }
                 else {
                     similarity_timer = max_similar_frames;
-                    // std::cout << " uncertain" << std::endl;
                 }
 
                 // if similarity is in this range, use last coins found
@@ -266,7 +264,6 @@ int main(int argc, const char* argv[])
                     if (c == 27) break;
                     continue;
                 }
-
             }
             last = frame.clone();
 
@@ -293,16 +290,6 @@ int main(int argc, const char* argv[])
                 test_images_colour.push_back(original_frame.clone());
                 predicted_circles.push_back(circles);
                 predicted_labels.push_back(coins_found);
-            }
-            // Draw circles
-            for (size_t j = 0; j < circles.size(); j++) {
-                cv::Vec3f& c = circles[j];
-                cv::Point center(cvRound(c[0]), cvRound(c[1]));
-                int radius = cvRound(c[2]);
-
-                cv::circle(original_frame, center, radius, cv::Scalar(255, 0, 255), static_cast<int>(3*downsampling_factor), cv::LINE_AA);
-                cv::putText(original_frame, std::to_string(j), cv::Point(center.x-radius/2, center.y+radius/2), cv::FONT_HERSHEY_SIMPLEX, 1.5*downsampling_factor, cv::Scalar(255, 0, 255), static_cast<int>(3*downsampling_factor));
-
             }
             // Draw predicted coins
             sum = 0;
@@ -369,15 +356,6 @@ int main(int argc, const char* argv[])
         out << "True sum of coins: " << true_sum << ", predicted sum of coins: " << pred_sum << ", difference: " << diff_sum << std::endl;
         std::cout << out.str();
 
-        // Draw circles
-        /*for (size_t j = 0; j < predicted_circles[i].size(); j++) {
-            cv::Vec3f& c = predicted_circles[i][j];
-            cv::Point center(cvRound(c[0]), cvRound(c[1]));
-            int radius = cvRound(c[2]);
-
-            cv::circle(test_images_colour[i], center, radius, cv::Scalar(255, 0, 255), static_cast<int>(3*downsampling_factor), cv::LINE_AA);
-            cv::putText(test_images_colour[i], std::to_string(j), cv::Point(center.x-radius/2, center.y+radius/2), cv::FONT_HERSHEY_SIMPLEX, 1.5*downsampling_factor, cv::Scalar(255, 0, 255), static_cast<int>(3*downsampling_factor));
-        }*/
         // Draw ground truth coins
         for (const auto& coin: ground_truth_labels[i]) {
             cv::circle(test_images_colour[i], coin.center, coin.radius, cv::Scalar(255, 255, 255), static_cast<int>(5*downsampling_factor), cv::LINE_AA);
