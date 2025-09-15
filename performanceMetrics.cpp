@@ -122,7 +122,7 @@ cv::Point2f compute_mIoU_and_accuracy(const std::vector<DetectedCoin> ground_tru
                 total_union += union_area;
 
                 // if this specific IoU is greater than 0.5 then count it as an accurate prediction
-                if (intersection_area / union_area >= 0.5) {
+                if (intersection_area / union_area >= 0.5f && gt_coin.class_name == pred_coin.class_name) {
                     accurate_predictions += 1;
                 }
 

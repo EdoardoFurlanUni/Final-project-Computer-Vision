@@ -1,0 +1,28 @@
+To speed up video processing, we implemented a frame skipping strategy. The goal was to avoid analyzing every single frame while still ensuring reliable results.
+We noticed that when the hand was moving, the coins placed under it often remained still. However, due to the temporary occlusion, the system could produce incorrect or unreliable detections.
+The basic idea to overcome this issue was to process only the frames where the coins were likely to be still and skip those where we detected movement.\\
+To detect whether the coins were still, we compared consecutive frames using the Structural Similarity Index (SSIM), which measures image similarity in terms of luminance, contrast, and structure. 
+The SSIM between two frames $x$ and $y$ was computed as:
+
+\begin{equation}
+    SSIM(x,y) = \frac{(2\mu_x\mu_y + C_1)(2\sigma_{xy} + C_2)}{(\mu_x^2 + \mu_y^2 + C_1)(\sigma_x^2 + \sigma_y^2 + C_2)}
+\end{equation}
+where $x$ and $y$ are the two images, $\mu_x$ and $\mu_y$ are the mean values of the images, $\sigma_x^2$ and $\sigma_y^2$ are the variances of the images, $\sigma_{xy}$ is the covariance of the images, and $C_1$ and $C_2$ are two constants to stabilize the division. The SSIM value ranges from -1 to 1, where 1 means that the two images are identical.\\
+We introduced two thresholds $\textit{different\_threshold}$ and $\textit{similar\_threshold}$:
+\begin{equation*}
+    \begin{cases}
+    SSIM < \textit{different\_threshold} & \text{the frame was skipped} \\
+    SSIM > \textit{similar\_threshold} & \text{the frame was skipped} \\
+    \text{different\_threshold} \leq SSIM \leq \text{similar\_threshold} & \text{the frame was processed}
+    \end{cases}
+\end{equation*}
+
+To make the method more robust, we added rules that forced the analysis of certain frames, regardless of their similarity value:
+\begin{itemize}
+\item Timer expiration: if too many consecutive frames had been skipped, the next frame was processed to avoid missing gradual changes.
+\item Ground-truth frames: if the current frame index belonged to a predefined list of frames used for evaluation, it was processed to guarantee comparability.
+\end{itemize}
+In these cases, the algorithm slightly lowered the similarity value below the threshold, effectively tricking the system into treating the frame as “different enough” to be analyzed.\\
+When a frame was skipped, the results from the last analyzed frame were reused. This ensured that predictions were always available for every frame in the video, even if some of them were not directly processed.
+
+
