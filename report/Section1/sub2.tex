@@ -2,10 +2,29 @@
 To detect circles in the image, we used the well-known technique Hough Circle Transform.
 
 To simplify the image in which we had to search for circles, we first applied a processing based on local variance.
+Given an image $I(x,y)$, firstly the local mean $\mu(x,y)$ is computed on a kernel of size $15 \times 15$ centered in $(x,y)$ as follows:
+\begin{equation}
+    \mu(x,y) = \frac{1}{|K|} \sum_{(u,v) \in K} I(x+u,y+v)\ ,
+\end{equation}
+similarly, the local mean of the squared intensity values:
+\begin{equation}
+    \mu_2(x,y) = \frac{1}{|K|} \sum_{(u,v) \in K} I^2(x+u,y+v)\ .
+\end{equation}
+The local variance is then defined as:
+\begin{equation}
+    \sigma^2(x,y) = \mu_2(x,y) - \mu^2(x,y)\ .
+\end{equation}
+After normalizing to the interval $[0,255]$, we applied a threshold to obtain a binary mask that highlights strong local variance values:
+\begin{equation}
+    M(x,y) = \begin{cases}
+        1 & \text{if } \sigma^2(x,y) > 30 \\[5pt]
+        0 & \text{otherwise}
+    \end{cases}\ .
+\end{equation}
 This technique has a similar effect to edge detection, but it is more robust to noise and illumination changes.
 In fact, it brought several advantages:
 \begin{itemize}
-    \item it almost ignores internal texture of the coins, which is not useful for circle detection;
+    \item it almost ignores internal texture of the coins, which is not useful for circle detection but it will be relevant for the classification step using template matching;
     \item it enhances the external edges of the coins, making the detection easier and more precise;
     \item it is also able to remove hands from the detection, since they have a low local variance as they are uniform.
 \end{itemize}
