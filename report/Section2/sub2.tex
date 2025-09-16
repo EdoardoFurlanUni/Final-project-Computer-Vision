@@ -1,0 +1,104 @@
+
+The performances on the test videos are summarized in Table~\ref{Results:tab:video1} and Table~\ref{Results:tab:video2}, while some qualitative results are shown in Figure~\ref{Results:fig:video1} and Figure~\ref{Results:fig:video2}.
+
+Analysing the results on both videos, let us understand an important problem of our method
+
+\begin{table}[H]
+\centering
+\begin{tabular}{c|c|c|c|c}
+\toprule
+\textbf{Frames} & \textbf{mIoU} & \textbf{Accuracy} & \textbf{Predicted sum} & \textbf{Sum error} \\[4pt]
+\midrule
+frame a     & $0.110$     & $10.00\,\%$     & $2.00$     & $-7.22$ \\[8pt]
+frame b     & $0.588$     & $72.73\,\%$     & $9.70$     & $-0.02$ \\[8pt]
+frame c     & $0.884$     & $84.62\,\%$     & $10.0$     & $-0.32$ \\[8pt]
+frame d     & $0.827$     & $85.71\,\%$     & $9.83$     & $-0.20$ \\[8pt]
+frame e     & $0.415$     & $50.00\,\%$     & $7.84$     & $-3.73$ \\
+\bottomrule
+\end{tabular}
+\caption{Performance metrics for reference frames of video 1.}
+\label{Results:tab:video1}
+\end{table}
+
+\setcounter{subfigure}{0} % per resettare il contatore delle subfigure
+\begin{figure}[H]
+    \addtocounter{figure}{1} % per non saltare il numero
+    \centering
+    \subfloat[\label{Results:fig:video1_frame0}]{
+        \includegraphics[width=0.45\textwidth]{Immagini/video1_frame0.jpg}
+    }\hfill
+    \subfloat[\label{Results:fig:video1_frame1}]{
+        \includegraphics[width=0.45\textwidth]{Immagini/video1_frame1.jpg}
+    }
+\end{figure}
+\begin{figure}[H]
+    \addtocounter{figure}{1} % per non saltare il numero
+    \ContinuedFloat
+    \centering
+    \subfloat[\label{Results:fig:video1_frame2}]{
+        \includegraphics[width=0.45\textwidth]{Immagini/video1_frame2.jpg}
+    }\hfill
+    \subfloat[\label{Results:fig:video1_frame3}]{
+        \includegraphics[width=0.45\textwidth]{Immagini/video1_frame3.jpg}
+    }
+\end{figure}
+\begin{figure}[H]
+    \ContinuedFloat
+    \centering
+    \subfloat[\label{Results:fig:video1_frame4}]{
+        \includegraphics[width=0.45\textwidth]{Immagini/video1_frame4.jpg}
+    }
+    \caption{Results of the detection algorithm on sample images from the test set.
+    The ground truth circles are drawn in white, while the detected ones are drawn in green.}
+    \label{Results:fig:video1}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{c|c|c|c|c}
+\toprule
+\textbf{Frames} & \textbf{mIoU} & \textbf{Accuracy} & \textbf{Predicted sum} & \textbf{Sum error} \\[4pt]
+\midrule
+frame a     & $0.884$     & $66.67\,\%$     & $1.52$     & $+0.01$ \\[8pt]
+frame b     & $0.915$     & $100.0\,\%$     & $3.51$     & $ 0.00$ \\[8pt]
+frame c     & $0.000$     & $ 0.00\,\%$     & $0.00$     & $-2.53$ \\[8pt]
+frame d     & $0.824$     & $100.0\,\%$     & $6.55$     & $+0.50$ \\[8pt]
+frame e     & $0.845$     & $87.50\,\%$     & $8.87$     & $-1.20$ \\
+\bottomrule
+\end{tabular}
+\caption{Performance metrics for reference frames of video 2.}
+\label{Results:tab:video2}
+\end{table}
+
+\setcounter{subfigure}{0} % per resettare il contatore delle subfigure
+\begin{figure}[H]
+    \addtocounter{figure}{1} % per non saltare il numero
+    \centering
+    \subfloat[\label{Results:fig:video2_frame0}]{
+        \includegraphics[width=0.45\textwidth]{Immagini/video2_frame_0.jpg}
+    }\hfill
+    \subfloat[\label{Results:fig:video2_frame1}]{
+        \includegraphics[width=0.45\textwidth]{Immagini/video2_frame_1.jpg}
+    }
+\end{figure}
+\begin{figure}[H]
+    \addtocounter{figure}{1} % per non saltare il numero
+    \ContinuedFloat
+    \centering
+    \subfloat[\label{Results:fig:video2_frame2}]{
+        \includegraphics[width=0.45\textwidth]{Immagini/video2_frame_2.jpg}
+    }\hfill
+    \subfloat[\label{Results:fig:video2_frame3}]{
+        \includegraphics[width=0.45\textwidth]{Immagini/video2_frame_3.jpg}
+    }
+\end{figure}
+\begin{figure}[H]
+    \ContinuedFloat
+    \centering
+    \subfloat[\label{Results:fig:video2_frame4}]{
+        \includegraphics[width=0.45\textwidth]{Immagini/video2_frame_4.jpg}
+    }
+    \caption{Results of the detection algorithm on sample images from the test set.
+    The ground truth circles are drawn in white, while the detected ones are drawn in green.}
+    \label{Results:fig:video2}
+\end{figure}

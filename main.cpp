@@ -181,16 +181,16 @@ int main(int argc, const char* argv[])
         
         while (true) {
             cap >> original_frame;
-            
-            // show progress bar
-            frame_count++;
-            progress_bar(frame_count, static_cast<int>(cap.get(cv::CAP_PROP_FRAME_COUNT)), 100);
 
             if (original_frame.empty()) break;
 
-            if (frame_count < 100) {
-                continue;
-            }
+            // show progress bar
+            frame_count++;
+            progress_bar(frame_count, static_cast<int>(cap.get(cv::CAP_PROP_FRAME_COUNT)), 100);
+            
+            // if (frame_count < 100) {
+            //     continue;
+            // }
 
             // upscale and downsample to obtain the same size for coins
             cv::resize(original_frame, original_frame, cv::Size(), downsampling_factor*1.89f, downsampling_factor*1.89f);
