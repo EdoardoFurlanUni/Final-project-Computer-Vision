@@ -117,7 +117,7 @@ cv::Point2f compute_mIoU_and_accuracy(const std::vector<DetectedCoin> ground_tru
             const DetectedCoin& pred_coin = predicted_labels[i];
             auto [intersection_area, union_area] = intersection_and_union(gt_coin, pred_coin);
 
-            if (intersection_area > 0) { // if there is intersection between label and prediction than it can't happen again
+            if (intersection_area > 500) { // if there is intersection between label and prediction than it can't happen again
                 total_intersection += intersection_area;
                 total_union += union_area;
 
@@ -146,6 +146,8 @@ cv::Point2f compute_mIoU_and_accuracy(const std::vector<DetectedCoin> ground_tru
         const DetectedCoin& pred_coin = predicted_labels[i];
         total_union += CV_PI * pred_coin.radius * pred_coin.radius;
     }
+
+    std::cout << "accurate predictions: " << accurate_predictions << " / " << ground_truth_labels.size() << std::endl;
 
     return cv::Point2f(total_intersection / total_union, accurate_predictions / ground_truth_labels.size());
 }

@@ -188,9 +188,12 @@ int main(int argc, const char* argv[])
             frame_count++;
             progress_bar(frame_count, static_cast<int>(cap.get(cv::CAP_PROP_FRAME_COUNT)), 100);
             
-            // if (frame_count < 100) {
+            // if (frame_count < 560) {
             //     continue;
             // }
+            if (std::find(frame_indexes.begin(), frame_indexes.end(), frame_count) == frame_indexes.end()) {
+                continue;
+            }
 
             // upscale and downsample to obtain the same size for coins
             cv::resize(original_frame, original_frame, cv::Size(), downsampling_factor*1.89f, downsampling_factor*1.89f);
