@@ -9,12 +9,12 @@ The SSIM between two frames $x$ and $y$ was computed as:
     SSIM(x,y) = \frac{(2\mu_x\mu_y + C_1)(2\sigma_{xy} + C_2)}{(\mu_x^2 + \mu_y^2 + C_1)(\sigma_x^2 + \sigma_y^2 + C_2)}
 \end{equation}
 where $x$ and $y$ are the two images, $\mu_x$ and $\mu_y$ are the mean values of the images, $\sigma_x^2$ and $\sigma_y^2$ are the variances of the images, $\sigma_{xy}$ is the covariance of the images, and $C_1$ and $C_2$ are two constants to stabilize the division. The SSIM value ranges from -1 to 1, where 1 means that the two images are identical.\\
-We introduced two thresholds $\textit{different\_threshold}$ and $\textit{similar\_threshold}$:
+We introduced two thresholds $\texttt{different\_threshold}$ and $\texttt{similar\_threshold}$:
 \begin{equation*}
     \begin{cases}
-    SSIM < \textit{different\_threshold} & \text{the frame was skipped} \\
-    SSIM > \textit{similar\_threshold} & \text{the frame was skipped} \\
-    \text{different\_threshold} \leq SSIM \leq \text{similar\_threshold} & \text{the frame was processed}
+    SSIM < \texttt{different\_threshold} & \text{the frame was skipped} \\
+    SSIM > \texttt{similar\_threshold} & \text{the frame was skipped} \\
+    \texttt{different\_threshold} \leq SSIM \leq \texttt{similar\_threshold} & \text{the frame was processed}
     \end{cases}
 \end{equation*}
 

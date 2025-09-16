@@ -191,9 +191,9 @@ int main(int argc, const char* argv[])
             // if (frame_count < 560) {
             //     continue;
             // }
-            if (std::find(frame_indexes.begin(), frame_indexes.end(), frame_count) == frame_indexes.end()) {
-                continue;
-            }
+            // if (std::find(frame_indexes.begin(), frame_indexes.end(), frame_count) == frame_indexes.end()) {
+            //     continue;
+            // }
 
             // upscale and downsample to obtain the same size for coins
             cv::resize(original_frame, original_frame, cv::Size(), downsampling_factor*1.89f, downsampling_factor*1.89f);
