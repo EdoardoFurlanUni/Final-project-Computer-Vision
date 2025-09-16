@@ -1,8 +1,5 @@
-In conclusion, our system proved to be reliable and efficient under controlled conditions. We employed several techniques that significantly reduced both the error rate and the computation time.
-
-Nevertheless, the system was not designed to handle variations outside these controlled settings, which limits its applicability in more general scenarios. 
-A possible direction for future work would be the development of a more robust approach, for example through deep learning models capable of learning and generalizing across diverse conditions. 
-However, given the limited size of our dataset, such an improvement is not currently feasible.
-
-Another promising avenue could be to leverage temporal causality in videos. 
-By exploiting information from previous frames, the system could potentially predict the position of coins even when they are completely occluded by the hand, improving detection in challenging sequences.
+Along the final approaches that we decided to adopt, we developed other ideas that we discarded. In this section we briefly summarize some methods that we tried to implement.
+\begin{itemize}
+    \item Histogram of Gradients + SVM: One of the main problems we found using template matching is its difficulty in dealing with illumination changes and occlusions. For this reason we tried a Machine Learning approach we studied during the course. This method involves a first part dedicated to training, where features are extracted from test images (in our case we tried the HoG feature extractor) and used to train a SVM classifier. The idea was to use this method to classify each coin
+            after the circle detection implemented with the Hough Circle Transform. However, even if we measured a significant imnprovement in speed, the method never came close to the accuracy of the template matching. This problem may be caused by the fact that the dataset is way too small to give a proper training to the SVM, making it unusable to properly classify images in this specific scenario where data availabilty is very restricted
+\end{itemize}
