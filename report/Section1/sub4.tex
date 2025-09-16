@@ -1,6 +1,7 @@
 To speed up video processing, we implemented a frame skipping strategy. The goal was to avoid analyzing every single frame while still ensuring reliable results.
 We noticed that when the hand was moving, the coins placed under it often remained still. However, due to the temporary occlusion, the system could produce incorrect or unreliable detections.
 The basic idea to overcome this issue was to process only the frames where the coins were likely to be still and skip those where we detected movement.\\
+An other important aspect was to skipping consecutive frames that were almost identical, as they would not provide any new information and would only increase processing time.\\
 To detect whether the coins were still, we compared consecutive frames using the Structural Similarity Index (SSIM), which measures image similarity in terms of luminance, contrast, and structure. 
 The SSIM between two frames $x$ and $y$ was computed as:
 
