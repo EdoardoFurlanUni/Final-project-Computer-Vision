@@ -4,16 +4,16 @@ std::vector<cv::Mat> load_images_from_folder(const std::string& folder, int flag
     std::vector<cv::String> filenames;
     std::vector<cv::Mat> images;
 
-    // Prende tutte le immagini (jpg, png, ecc.) nella cartella
+    // Takes all images in the folder (jpg, png, ecc.)
     cv::glob(folder, filenames, false);
 
-    // Carica le immagini nell'ordine restituito da glob (già ordinato lessicograficamente)
+    // Load images in the order returned by glob (already lexicographically sorted)
     for (const auto& file : filenames) {
         cv::Mat img = cv::imread(file, flags);
         if (!img.empty()) {
             images.push_back(img);
         } else {
-            std::cerr << "⚠️  Impossibile caricare immagine: " << file << std::endl;
+            std::cerr << "Impossible to load image: " << file << std::endl;
         }
     }
     return images;

@@ -147,7 +147,7 @@ cv::Point2f compute_mIoU_and_accuracy(const std::vector<DetectedCoin> ground_tru
         total_union += CV_PI * pred_coin.radius * pred_coin.radius;
     }
 
-    std::cout << "accurate predictions: " << accurate_predictions << " / " << ground_truth_labels.size() << std::endl;
+    // std::cout << "accurate predictions: " << accurate_predictions << " / " << ground_truth_labels.size() << std::endl;
 
     return cv::Point2f(total_intersection / total_union, accurate_predictions / ground_truth_labels.size());
 }

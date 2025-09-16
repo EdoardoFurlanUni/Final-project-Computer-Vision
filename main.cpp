@@ -135,7 +135,7 @@ int main(int argc, const char* argv[])
         int fps = cap.get(cv::CAP_PROP_FPS);
         cv::Size frameSize(cvRound(0.3f*downsampling_factor*1.89f*cap.get(cv::CAP_PROP_FRAME_WIDTH)), cvRound(0.3f*downsampling_factor*1.89f*cap.get(cv::CAP_PROP_FRAME_HEIGHT)));
         results_path = "../results/" + std::string(argv[1]);
-        // Crea la cartella se non esiste
+        // Create the folder if it doesn't exist
         if (!std::filesystem::exists(results_path)) {
             if (!std::filesystem::create_directories(results_path)) {
                 std::cerr << "Error: can't open folder:  " << results_path << std::endl;
@@ -310,7 +310,7 @@ int main(int argc, const char* argv[])
             writer.write(original_frame);
 
             cv::imshow("Template Matching", original_frame);
-            // Esc per uscire
+            // Esc to terminate
             char c = (char)cv::waitKey(1);
             if (c == 27) break;
 
@@ -331,7 +331,7 @@ int main(int argc, const char* argv[])
 
             cv::namedWindow("Processed Video", cv::WINDOW_KEEPRATIO);
             cv::imshow("Processed Video", frame);
-            if (cv::waitKey(1000 / fps) == 27) break; // ESC per uscire
+            if (cv::waitKey(1000 / fps) == 27) break; // ESC to terminate
         }
 
         capOut.release();
@@ -373,14 +373,12 @@ int main(int argc, const char* argv[])
         cv::namedWindow("Results", cv::WINDOW_KEEPRATIO);
         cv::imshow("Results", test_images_colour[i]);
 
-
-
         std::cout << "Press any key to continue..." << std::endl;
         cv::waitKey(0);
     }
 
 
-    // Crea la cartella se non esiste
+    // Create the folder if it doesn't exist
     if (!std::filesystem::exists(results_path)) {
         if (!std::filesystem::create_directories(results_path)) {
             std::cerr << "Error: can't open folder:  " << results_path << std::endl;
@@ -399,4 +397,3 @@ int main(int argc, const char* argv[])
     }
     return 0;
 }
-

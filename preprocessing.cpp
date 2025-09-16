@@ -1,33 +1,9 @@
 
 #include "main.h"
 
-//MODIFIED
-
-cv::Mat correct_illumination(cv::Mat I){
-    cv::Mat illumination, corrected;
-
-    // apply a Gaussian filter with a large kernel to estimate the illumination
-    cv::GaussianBlur(I, illumination, cv::Size(101, 101), 0);
-
-    // convert the images to float for division
-    I.convertTo(I, CV_32F);
-    illumination.convertTo(illumination, CV_32F);
-    cv::Scalar meanVal = cv::mean(illumination);
-    
-    // divide the original image by the illumination
-    // and multiply by the mean value of the illumination (normalization)
-    cv::divide(I, illumination, corrected);
-    corrected *= cv::mean(illumination)[0];
-    // std::cout << "Mean value before conversion: " << cv::mean(illumination)[0] << std::endl;
-    corrected.convertTo(corrected, CV_8U);
-
-    return corrected;
-}
-
 cv::Mat contrast_stretching(const cv::Mat& I, const std::vector<cv::Point2f>& points) {
     cv::Mat stretched;
     I.convertTo(stretched, CV_32F);
-    //  = cv::Mat::zeros(I.size(), I.type());
 
     cv::Mat previous_mask = cv::Mat::zeros(I.size(), CV_8U);
 
@@ -37,103 +13,31 @@ cv::Mat contrast_stretching(const cv::Mat& I, const std::vector<cv::Point2f>& po
         int y1 = cvRound(points[i-1].y);
         int y2 = cvRound(points[i].y);
 
-        // maschera: pixel <= x2
+        // pixel <= x2
         cv::Mat mask;
         cv::threshold(I, mask, x2, 255, cv::THRESH_BINARY_INV);
 
-        // isoliamo l’intervallo (x1, x2]
+        // isolate interval (x1, x2]
         cv::Mat regionMask;
         cv::bitwise_xor(mask, previous_mask, regionMask); 
 
-        // trasformiamo i pixel di questa regione
+        // transform pixels in this region
         cv::Mat I_region;
         I.copyTo(I_region, regionMask);
         I_region.convertTo(I_region, CV_32F);
 
-        // applica la trasformazione lineare
+        // apply linear transformation
         I_region = (I_region - x1) * ((y2 - y1) / static_cast<float>(x2 - x1)) + y1;
         I_region.convertTo(I_region, CV_8U);
 
-        // scrivi nella destinazione
+        // write to destination
         I_region.copyTo(stretched, regionMask);
 
-        // aggiorna previous_mask
+        // update previous_mask
         previous_mask = mask.clone();
     }
 
     return stretched;
-}
-
-cv::Mat display_hist(cv::Mat I, int bins, std::string name) {
-    cv::Mat hist;
-    if (I.channels() > 1) {
-        return hist;
-    }
-
-    int histSize[] = { bins };
-    float range[] = { 0, 256 };
-    const float* ranges[] = { range };
-    int channels[] = { 0 };
-
-    int width = bins*2;
-    int height = 400;
-
-    cv::calcHist(&I, 1, channels, cv::Mat(), hist, 1, histSize, ranges);
-    cv::Mat histImage = cv::Mat(height, width, CV_8UC3, cv::Scalar(0, 0, 0));
-    cv::normalize(hist, hist, 0, height, cv::NORM_MINMAX);
-    for (int i = 1; i < bins; i++) {
-        cv::line(histImage,
-                 cv::Point(2*(i-1), height - cvRound(hist.at<float>(i - 1))),
-                 cv::Point(2*i, height - cvRound(hist.at<float>(i))),
-                 cv::Scalar(255, 255, 255));
-    }
-
-    cv::namedWindow(name);
-    cv::imshow(name, histImage);
-
-    return hist;
-}
-
-std::vector<cv::Rect> get_bbox_containing_coins(const std::vector<cv::Mat>& images, const int margin) {
-    std::vector<cv::Rect> bounding_boxes;
-    bounding_boxes.reserve(images.size());
-
-    for (const cv::Mat& img : images) {
-        cv::Mat new_image;
-        new_image = img.clone();
-
-        // apply canny
-        cv::GaussianBlur(new_image, new_image, cv::Size(5,5), 0);
-        cv::Canny(new_image, new_image, 20, 250, 3);
-
-        // find non zero points
-        std::vector<cv::Point> non_zero_points;
-        cv::findNonZero(new_image, non_zero_points);
-
-        // find bounding box containing non-zero points
-        cv::Rect bbox = cv::boundingRect(non_zero_points);
-
-        // add margin
-        bbox.x = std::max(bbox.x - margin, 0);
-        bbox.y = std::max(bbox.y - margin, 0);
-        bbox.width  = std::min(bbox.width  + 2*margin, img.cols - bbox.x);
-        bbox.height = std::min(bbox.height + 2*margin, img.rows - bbox.y);
-
-        bounding_boxes.push_back(bbox);
-    }
-
-    return bounding_boxes;
-}
-
-std::vector<cv::Mat> cut_images(const std::vector<cv::Mat>& images, const std::vector<cv::Rect>& cuts) {
-    std::vector<cv::Mat> cut_images;
-    cut_images.reserve(images.size());
-
-    for (size_t i = 0; i < images.size(); ++i) {
-        cut_images.push_back(images[i](cuts[i]).clone());
-    }
-
-    return cut_images;
 }
 
 std::vector<cv::Mat> preprocess_images(const std::vector<cv::Mat>& images, const std::vector<cv::Point2f>& points, int s, float sigma) {

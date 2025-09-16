@@ -17,6 +17,8 @@
 using Detection = std::tuple<cv::Point, double>;
 
 
+// ----- FILE MANAGEMENT -----
+
 /**
  * @brief Loads images from a folder
  * 
@@ -27,15 +29,8 @@ using Detection = std::tuple<cv::Point, double>;
  */
 std::vector<cv::Mat> load_images_from_folder(const std::string& folder, int flags);
 
+
 // ----- PREPROCESSING -----
-/**
- * @brief Corrects the illumination of a gray scale image using a Gaussian filter
- * 
- * @param I gray scale image
- * 
- * @return The resulting image after illumination correction
- */
-cv::Mat correct_illumination(cv::Mat I);
 
 /**
  * @brief Apply the transformation T(r) = {where x1 < r < x2 then r * (y2-y1)/(x2-x1)}
@@ -46,37 +41,6 @@ cv::Mat correct_illumination(cv::Mat I);
  * @return The resulting image after the transformation
  */
 cv::Mat contrast_stretching(const cv::Mat& I, const std::vector<cv::Point2f>& points);
-
-/**
- * @brief Display the histogram of a gray scale image
- * 
- * @param I gray scale image
- * @param bins number of bins in the histogram
- * @param name name of the window
- * 
- * @return The displayed histogram
-*/
-cv::Mat display_hist(cv::Mat I, int bins, std::string name);
-
-/**
- * @brief Finds the bounding boxes containing the coins in the images
- * 
- * @param images vector of gray scale images
- * @param margin margin to add to the bounding boxes
- * 
- * @return vector of bounding boxes
- */
-std::vector<cv::Rect> get_bbox_containing_coins(const std::vector<cv::Mat>& images, const int margin);
-
-/**
- * @brief Cuts the images according to the given bounding boxes
- * 
- * @param images vector of gray scale images
- * @param cuts vector of bounding boxes
- * 
- * @return vector of cut images
- */
-std::vector<cv::Mat> cut_images(const std::vector<cv::Mat>& images, const std::vector<cv::Rect>& cuts);
 
 /**
  * @brief Applies preprocessing to a vector of images
@@ -132,18 +96,6 @@ std::vector<cv::Vec3f> get_circles_positions(const cv::Mat& I, const float downs
 std::vector<cv::Mat> split_image_by_coins(const cv::Mat& I, const std::vector<cv::Vec3f>& circles, int margin);
 
 /**
- * @brief Finds all the non overlapping matches which have values above a certain threshold
- *
- * @param result result matrix (output of matchTemplate)
- * @param threshold threshold value
- * @param template_size size of the template used for matching
- * @param label class of the template
- *
- * @return Vector of (center, radius, confidence, class) structs
- */
-std::vector<DetectedCoin> get_positions_and_values_above_threshold(const cv::Mat& result, double threshold, double template_size, std::string label);
-
-/**
  * @brief Finds the best match above a certain threshold
  *
  * @param result result matrix (output of matchTemplate)
@@ -154,18 +106,6 @@ std::vector<DetectedCoin> get_positions_and_values_above_threshold(const cv::Mat
  * @return The best match (center, radius, confidence, class) struct
  */
 DetectedCoin get_best_match_above_threshold(const cv::Mat& result, double threshold, double template_size, std::string label);
-
-/**
- * @brief Adds the new_point to the list if there is no nearby point within min_distance. 
- * If the new_point has a higher confidence value, it replaces the existing point, otherwise it is discarded
- * 
- * @param new_point the point to add
- * @param points vector of points to check
- * @param min_distance minimum distance to consider a point as "near"
- * 
- * @return True if a nearby point exists, false otherwise
- */
-bool add_near_point(const DetectedCoin& new_point, std::vector<DetectedCoin>& points, double min_distance);
 
 /**
  * @brief Creates rotated versions of a template image
