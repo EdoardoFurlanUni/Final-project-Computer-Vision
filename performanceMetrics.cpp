@@ -1,3 +1,4 @@
+// main author - Andrea Marigo
 #include "main.h"
 
 void progress_bar(int current, int total, int bar_width) {

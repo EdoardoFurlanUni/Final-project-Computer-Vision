@@ -1,4 +1,4 @@
-
+// main author - Francesca Zorzi
 #include "main.h"
 
 cv::Mat contrast_stretching(const cv::Mat& I, const std::vector<cv::Point2f>& points) {

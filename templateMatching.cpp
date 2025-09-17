@@ -1,3 +1,4 @@
+//main author - Edoardo Furlan
 #include "main.h"
 
 std::vector<cv::Vec3f> get_circles_positions(const cv::Mat& I, const float downsampling_factor) {
