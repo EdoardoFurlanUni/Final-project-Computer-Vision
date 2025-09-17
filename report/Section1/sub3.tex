@@ -16,4 +16,5 @@ To speed up the matching process, we exploited the information about the positio
 \end{itemize}
 These two strategies allowed us to significantly reduce the computation time by reducing the area in which the matching is performed.
 
-\textbf{Note:} the resolution of the videos is different from the one of the single dataset images, leading to a significant degradation of the performances of template matching. To overcome this issue we had to resize
+\textbf{Note:} the resolution of the videos is lower from the one of the single dataset images, leading to a significant degradation of the performances of template matching. 
+To overcome this issue we had to upsample the frames of the videos by a factor of $1.89$, a value that makes the resolution of these frames equal to the one of the templates.

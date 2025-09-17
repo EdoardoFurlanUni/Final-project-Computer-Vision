@@ -1,6 +1,6 @@
 The first step in our work was to preprocess the images in order to enhance the most interesting features and allow for a better detection in the following steps. First, the program starts with a contrast stretching: this is used to enhance the contrast in the darker areas of the image (between 0 and 229 in RGB values, mainly containing coins) and to flatten the brighter areas (above 229, mainly containing the background). 
-The following step we tried to apply was histogram equalization, in order to reduce some effects of non-uniform illumination.
-This however did not produce the desired results, as the brighter areas (background) greatly influenced the outcome. 
+The following step we tried to apply was histogram equalization in order to reduce some effects of non-uniform illumination.
+This however did not produce the desired results as the background, very bright and with a very wide area compared to the coins, greatly influenced the outcome. 
 
 To address this issue we adopted the CLAHE algorithm (Contrast Limited Adaptive Histogram Equalization), which locally adjusts contrast in small regions separately.
 We used a grid size of 15x15, which defines the area of the local regions, and set the clip, which determines a limit on the contrast enhancement and is mainly used to avoid noise amplification, to 3, in order to avoid 
